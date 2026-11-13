@@ -15,7 +15,7 @@ export const releaseSQL = (owner: string): string =>
 
 if (import.meta.main) {
   const root = resolve(import.meta.dir, "../..");
-  const wrangler = resolve(root, "workers/pairfob-origin/node_modules/.bin/wrangler");
+  const wrangler = resolve(root, "workers/pairfob-origin/node_modules/wrangler/wrangler-dist/cli.js");
   const config = resolve(import.meta.dir, "wrangler.generated.json");
   const owner = randomUUID();
   const deadline = Date.now() + 20 * 60 * 1000;
@@ -25,7 +25,7 @@ if (import.meta.main) {
     return value;
   };
   function sql(command: string): { results: { owner?: string }[]; success: boolean }[] {
-    const output = execFileSync(wrangler, ["d1", "execute", "DB", "--remote", "--config", config, "--json", "--command", command], { cwd: root, encoding: "utf8", timeout: 30000, killSignal: "SIGKILL" });
+    const output = execFileSync("node", [wrangler, "d1", "execute", "DB", "--remote", "--config", config, "--json", "--command", command], { cwd: root, encoding: "utf8", timeout: 30000, killSignal: "SIGKILL" });
     const rows = JSON.parse(output);
     if (!Array.isArray(rows) || rows.some(row => !row.success)) throw new Error("Deploy lease D1 query failed");
     return rows;
@@ -37,8 +37,8 @@ if (import.meta.main) {
     // Re-read the live generation AFTER acquiring the lease; the build's earlier
     // pack may have preceded another successful deployment.
     execFileSync(process.execPath, [resolve(import.meta.dir, "prepare.ts")], { cwd: root, stdio: "inherit", timeout: remaining(), killSignal: "SIGKILL" });
-    execFileSync(wrangler, ["d1", "migrations", "apply", "DB", "--remote", "--config", config], { cwd: root, stdio: "inherit", timeout: remaining(), killSignal: "SIGKILL" });
-    execFileSync(wrangler, ["deploy", "--config", config], { cwd: root, stdio: "inherit", timeout: remaining(), killSignal: "SIGKILL" });
+    execFileSync("node", [wrangler, "d1", "migrations", "apply", "DB", "--remote", "--config", config], { cwd: root, stdio: "inherit", timeout: remaining(), killSignal: "SIGKILL" });
+    execFileSync("node", [wrangler, "deploy", "--config", config], { cwd: root, stdio: "inherit", timeout: remaining(), killSignal: "SIGKILL" });
   } finally {
     sql(releaseSQL(owner));
   }

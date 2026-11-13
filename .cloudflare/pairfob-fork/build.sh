@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+test "$(bun --version)" = "$(cat .bun-version)"
 for directory in pwa workers/pairfob-origin workers/pairfob-downloads site/doc; do
   (cd "$directory" && bun install --frozen-lockfile)
 done
