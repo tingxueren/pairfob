@@ -76,7 +76,9 @@ function expectations(capture, snapshot) {
     } else assert.equal(p.cwd || '', cwd, `${t.address}: cwd lost`);
     const title = (t.labels?.['pairfob.label'] || t.name || '').trim()
       || (t.status?.app ? customTab(m?.tabName) : '');
-    return { paneId, machine, project, workspaceId, title, rawTitle: t.title || '' };
+    const status = t.status?.app?.trim() ? ({error:'blocked',working:'working',idle:'idle',done:'done',blocked:'blocked'}[t.status.state] || 'unknown') : '';
+    if (status && status !== 'unknown') assert.equal(p.agent_status,status,t.address + ': projected agent status');
+    return { paneId, machine, project, workspaceId, title, status, rawTitle: t.title || '' };
   });
 }
 module.exports = { expectations };

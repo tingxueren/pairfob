@@ -93,7 +93,8 @@ trap finish EXIT
 export PATH="$HOME/.bun/bin:$HOME/.cargo/bin:$PATH"
 export GOTOOLCHAIN=go1.26.11
 export PAIRFOB_CORE_UI_INPUT="$repo/$input"
-export PAIRFOB_CORE_UI_SOURCE=$(node scripts/core-ui/source-digest.cjs)
+PAIRFOB_CORE_UI_SOURCE=$(node scripts/core-ui/source-digest.cjs)
+export PAIRFOB_CORE_UI_SOURCE
 node scripts/core-ui/check-input.cjs "$input"
 go test ./internal/runtime -run '^TestCoreUIAcceptanceReplay$' -count=1 -v
 node scripts/core-ui/selfcheck.cjs "$input"

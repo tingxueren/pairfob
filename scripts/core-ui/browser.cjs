@@ -30,7 +30,8 @@ async function inject(page, snapshot, capture) {
     const pair = {...computers.credential(),hostname:host};
     computers.setCredential(pair);
     computers.setComputers([pair]);
-    runtime.applyRuntimeIdentity({herdHost:host,runtimeKind:"herdr-core"});
+    // GetConfig normalizes a Core descriptor to the frozen wire enum "herdr".
+    runtime.applyRuntimeIdentity({herdHost:host,runtimeKind:"herdr"});
     prefs.resetHerdPresentationChoices();
     prefs.setListGroup('space');
     prefs.setListSort('name');
@@ -46,7 +47,7 @@ async function dom(page) {
     name: g.querySelector('.group-name').textContent,
     remote: g.querySelector('.group-title .remote-machine-badge')?.textContent || '',
     rows: [...g.querySelectorAll('[data-pane-id]')].map(r => ({ id: r.dataset.paneId,
-      name: r.querySelector('.card-name')?.textContent || '', remote: r.querySelector('.remote-machine-badge')?.textContent || '' })),
+      name: r.querySelector('.card-name')?.textContent || '', status: r.querySelector('.card-status')?.className || '', remote: r.querySelector('.remote-machine-badge')?.textContent || '' })),
   })));
 }
 function checkDOM(groups, expected) {
@@ -56,6 +57,7 @@ function checkDOM(groups, expected) {
     const row = rows.find(r => r.id === e.paneId);
     assert.equal(row.group.id, e.workspaceId, `${e.paneId}: DOM workspace`);
     assert.equal(row.group.name, e.project, `${e.paneId}: DOM project title`);
+    if (e.status) assert(row.status.split(/\s+/).includes('is-' + e.status),e.paneId + ': DOM lost agent status ' + e.status + ': ' + row.status);
     assert(row.name.trim(), `${e.paneId}: blank DOM title`);
     if (e.title) assert.equal(row.name, e.title, `${e.paneId}: DOM custom title`);
     assert.equal(row.remote, e.machine ? `远端 · ${e.machine}` : '', `${e.paneId}: remote row badge`);
