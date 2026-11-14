@@ -1,4 +1,5 @@
 import { MoreHorizontal, Plus } from "lucide-react";
+import { RemoteBadge } from "./remote-badge";
 import { t } from "../../../lib/i18n";
 import { usePresence } from "../../../shared/react/use-presence";
 import { MOTION_MS } from "../../../shared/ui/dom/motion";
@@ -96,6 +97,7 @@ export function HerdGroup({
         >
           <Chevron className="group-chev" />
           <span className="group-name">{group.title}</span>
+          <RemoteBadge machine={group.remoteMachine} />
         </Button>
         {hoverActions ? tools : null}
         <span className="group-marks">

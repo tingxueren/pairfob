@@ -1,3 +1,4 @@
+import { listDisplaySnapshot } from "./list-display-scene";
 import { offerNotifications } from "../src/features/settings/notification-onboarding";
 import { rememberPushConfig } from "../src/features/settings/push-config";
 import { modelTrace } from "./model-traces";
@@ -93,6 +94,7 @@ export const scenes: FixtureScene[] = [
   { name: "attention-rich-updated", description: "Runtime occupant replacement and newer completion sequence" },
   { name: "attention-empty", description: "Attention filters with no matching checking tasks" },
   { name: "attention-legacy", description: "Legacy agents without readiness facts" },
+  { name: "home-list-display", description: "Local and remote project display choices" },
   { name: "home-grouped", description: "Grouped workspace list" },
   { name: "home-offline", description: "Unverifiable session status" },
   { name: "home-busy", description: "Busy computer: six workspaces, many agents and terminals, grouped" },
@@ -216,6 +218,7 @@ const TERMINAL_SCREENS: Record<string, NonNullable<SessionSource["terminalScreen
 
 /** The computer a scene talks to: busy scenes bring their own snapshot and screens. */
 export function sceneSource(name: string): SessionSource {
+  if (name === "home-list-display") return { snapshot: listDisplaySnapshot };
   if (name === "terminal-core") return { clientScroll: true };
   if (name === "completion-recovery") return { snapshot: completionSnapshot };
   if (name === "chat-needs-you") return { snapshot: blockedFocusedSnapshot, paneText: () => data.NEEDS_YOU_SCREEN };
@@ -496,6 +499,7 @@ export async function applyScene(name: string, session: FixtureSession): Promise
   if (name === "attention-empty") replaceAgentsFromSnapshot({ ...data.snapshot(), panes: data.snapshot().panes?.filter((pane) => pane.agent_status !== "unknown") });
   if (name === "attention-legacy") replaceAgentsFromSnapshot(data.snapshot());
   if (name === "completion-recovery") replaceAgentsFromSnapshot(completionSnapshot());
+  if (name === "home-list-display") { replaceAgentsFromSnapshot(listDisplaySnapshot()); setListGroup("space"); togglePanePin("w1:p3"); }
   if (name === "home-grouped") { setListGroup("space"); togglePanePin("w1:p3"); }
   if (name === "home-recent" || name === "palette-recent") {
     for (const [paneId, minutesAgo] of RECENT_OPENS) clockAt(FIXED_NOW - minutesAgo * 60_000, () => rememberPane(paneId));

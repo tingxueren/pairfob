@@ -108,6 +108,8 @@ export function deskEmptyState(view: Pick<HerdViewModel, "groups" | "loading" | 
   const empty = view.empty;
   if (!empty) return null;
   switch (empty.kind) {
+    case "hiddenRemote":
+      return { title: empty.title, sub: empty.sub, command: "", actions: empty.actions, entries: "none" };
     case "none":
       return { title: empty.title, sub: t("deskEmpty.firstSub"), command: "", actions: [], entries: "open" };
     case "noCreate":
@@ -140,7 +142,7 @@ type DeskEmptyProps = {
   onAction(kind: HerdEmptyAction): void;
 };
 
-const ACTION_ICON: Record<HerdEmptyAction, typeof Plus> = { create: Plus, retry: RefreshCw, details: SlidersHorizontal };
+const ACTION_ICON: Record<HerdEmptyAction, typeof Plus> = { listOptions: SlidersHorizontal, create: Plus, retry: RefreshCw, details: SlidersHorizontal };
 
 /**
  * The desk main column when no session is open: the sessions that need the

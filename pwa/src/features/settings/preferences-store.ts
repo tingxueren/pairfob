@@ -1,3 +1,4 @@
+import { parseListSort, type ListSort, type ListPolicy } from "../../lib/list-policy";
 import { parseQuickCommands, type QuickCommand } from "./quick-command-model";
 import { DEFAULT_LIST_GROUP, parseListGroup, parsePinnedAt, prunePinnedAt, togglePinnedAt, touchPane, nextTouchedAt,
   type AgentCard, type ListGroup, type PinnedAt, type TouchedAt } from "../../lib/ranking";
@@ -29,6 +30,8 @@ export const PAD_KIND_KEY = "pairfob:padKind";
 export const DEFAULT_COMPOSE_LIVE_KEY = "pairfob:defaultComposeLive";
 export const COMPOSE_ENTER_SENDS_KEY = "pairfob:composeEnterSends";
 export const PANE_COMPOSE_LIVE_KEY = "pairfob:paneComposeLive";
+export const LIST_SORT_KEY = "pairfob:listSort";
+export const SHOW_REMOTE_KEY = "pairfob:showRemote";
 export const LIST_GROUP_KEY = "pairfob:listGroup";
 export const PANE_TOUCHED_KEY = "pairfob:paneTouched";
 export const PANE_ACTIVATED_KEY = "pairfob:paneActivated";
@@ -59,6 +62,8 @@ export type PreferencesRecord = {
   padKind: PadKind;
   quickCommands: QuickCommand[] | null;
   listGroup: ListGroup;
+  listSort: ListSort;
+  showRemote: boolean;
   /** true = that grouped heading is collapsed. Missing ids follow first-open. */
   listGroupCollapsed: Record<string, boolean>;
   paneTouched: TouchedAt;
@@ -207,6 +212,8 @@ export function initialPreferences(): PreferencesRecord {
     padKind: "keys",
     quickCommands: null,
     listGroup: DEFAULT_LIST_GROUP,
+    listSort: "recent",
+    showRemote: true,
     listGroupCollapsed: {},
     paneTouched: {},
     paneActivated: {},
@@ -238,6 +245,8 @@ export function hydratePreferences(environment: DomainEnvironment): void {
     record.padKind = loadPadKind(stored);
     record.quickCommands = parseQuickCommands(parseJSON(stored(QUICK_COMMANDS_KEY)));
     record.listGroup = loadListGroup(stored);
+    record.listSort = parseListSort(stored(LIST_SORT_KEY));
+    record.showRemote = stored(SHOW_REMOTE_KEY) !== "0";
     record.defaultTermMode = loadDefaultTermMode(stored);
     record.defaultComposeLive = loadDefaultComposeLive(stored);
     record.composeEnterSends = loadComposeEnterSends(stored);
@@ -293,6 +302,26 @@ export function defaultComposeLive(): boolean {
   return read().defaultComposeLive;
 }
 
+export function listPolicy(): ListPolicy {
+  return { listSort: read().listSort, showRemote: read().showRemote };
+}
+
+export function setListSort(sort: ListSort): void {
+  if (read().listSort === sort) return;
+  batch(() => {
+    write(record => { record.listSort = sort; });
+    writeStorage(LIST_SORT_KEY, sort);
+  });
+}
+
+export function setShowRemote(show: boolean): void {
+  if (read().showRemote === show) return;
+  batch(() => {
+    write(record => { record.showRemote = show; });
+    writeStorage(SHOW_REMOTE_KEY, show ? "1" : "0");
+  });
+}
+
 export function listGroup(): ListGroup {
   return read().listGroup;
 }
@@ -324,6 +353,8 @@ export function resetHerdPresentationChoices(): void {
     record.paneActivated = {};
     record.panePinned = {};
     record.listGroupCollapsed = {};
+    record.listSort = "recent";
+    record.showRemote = true;
   });
 }
 

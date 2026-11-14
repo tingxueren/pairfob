@@ -3,6 +3,7 @@ import { t, type LocalizedText } from "../../../lib/i18n";
 export type FullTerminalStage = "loading" | "opening" | "waiting" | "error" | "live";
 
 export class FullTerminalStatus {
+  hasFrame = false;
   detail: LocalizedText = "";
   stage: FullTerminalStage = "loading";
   private retryAvailable = false;
@@ -36,8 +37,15 @@ export class FullTerminalStatus {
   }
 
   reset(detail: LocalizedText): void {
+    this.hasFrame = false;
     this.retryAvailable = false;
     this.set(detail, "loading");
+  }
+
+  frameApplied(): void {
+    if (this.hasFrame) return;
+    this.hasFrame = true;
+    this.repaint();
   }
 
   clearRetry(): void {

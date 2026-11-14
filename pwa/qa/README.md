@@ -158,3 +158,9 @@ with distinct values, a running turn, a long identifier, missing records,
 Claude's absent effort, and multiple configurations within one turn. Expand the
 execution card to check full IDs and the preserved step list. `chat-complete`
 remains the old-daemon baseline without metadata.
+
+The `home-list-display` scene mixes local projects with a machine-qualified core
+project (nerd). `pwa/scripts/list-display.browser.js` checks name sorting, persisted
+visibility, remote badges and the retained-screen recovery notice at touch widths
+390, 820 and 1024, and mouse/keyboard width 1440. These are fixture checks;
+background suspension and reconnect duration still need physical iPhone acceptance.

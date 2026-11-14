@@ -1,4 +1,5 @@
 import { t } from "./i18n.ts";
+import { compareProjectNames, projectName, remoteMachine, visibleListAgents, type ListPolicy } from "./list-policy";
 import type { PaneActivity } from "./pane-activity.ts";
 
 export type AgentStatus = "blocked" | "working" | "done" | "idle" | "unknown";
@@ -183,11 +184,12 @@ export function groupAgents(
   mode: ListGroup,
   touchedAt: TouchedAt = {},
   pinnedAt: PinnedAt = {},
+  policy: ListPolicy = {},
 ): AgentGroup[] {
   // `touchedAt` is the reader's own activation: the pane opened last leads its
   // group, and the group holding it leads the list. Ties keep the computer's
   // order, so nothing else — a status change included — moves a row.
-  const ranked = rankAgents(agents, touchedAt, pinnedAt);
+  const ranked = rankAgents(visibleListAgents(agents, policy), touchedAt, pinnedAt);
   const pinnedItems: AgentCard[] = [];
   const rest: AgentCard[] = [];
   for (const agent of ranked) {
@@ -223,6 +225,13 @@ export function groupAgents(
       .sort((left, right) => {
         const unbound = Number(left.id === "unbound") - Number(right.id === "unbound");
         if (unbound !== 0) return unbound;
+        if (policy.listSort === "name") {
+          const lm = mode === "space" ? remoteMachine(left.items[0]) : "";
+          const rm = mode === "space" ? remoteMachine(right.items[0]) : "";
+          const machineOrder = Number(Boolean(lm)) - Number(Boolean(rm)) || compareProjectNames(lm, rm);
+          return machineOrder || compareProjectNames(projectName(left.title, lm), projectName(right.title, rm))
+            || compareProjectNames(left.id, right.id);
+        }
         // Equal recency keeps first appearance, i.e. the computer's order.
         return groupTouched(right, touchedAt) - groupTouched(left, touchedAt);
       }),

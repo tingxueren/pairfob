@@ -9,14 +9,14 @@
  */
 import { computersStore } from "../computers/catalog-store";
 import { runtimeStore } from "../connection/runtime-store";
-import { listGroup } from "../settings/preferences-store";
+import { listGroup, listPolicy } from "../settings/preferences-store";
 import { holdActivation, type ActivationHold, type TouchedAt } from "../../lib/ranking";
 
 let shown: ActivationHold | null = null;
 
 /** The list a hold belongs to: the computer, its Herdr session, the grouping. */
 export function herdListScope(): string {
-  return `${computersStore.get().credential?.daemonId ?? ""}\u0000${runtimeStore.get().herdHost}\u0000${listGroup()}`;
+  return `${computersStore.get().credential?.daemonId ?? ""}\u0000${runtimeStore.get().herdHost}\u0000${listGroup()}\u0000${listPolicy().listSort}\u0000${listPolicy().showRemote}`;
 }
 
 /** Called by the presentation boundary with the activation the list was drawn by. */

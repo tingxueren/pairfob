@@ -230,8 +230,9 @@ export function acknowledgePaneCompletion(paneId: string): boolean {
  * Mark every unread completion read at once. Returns what an undo needs (the
  * acknowledgements this call added), or null when nothing was unread.
  */
-export function acknowledgeAllCompletions(): { count: number; added: SeenCompletions } | null {
-  const { seen, added } = markAllCompletionsSeen(read().completionSeen, read().runtimeAgentStatuses, read().agents);
+export function acknowledgeAllCompletions(visiblePaneIds?: ReadonlySet<string>): { count: number; added: SeenCompletions } | null {
+  const agents = visiblePaneIds ? read().agents.filter(agent => visiblePaneIds.has(agent.paneId)) : read().agents;
+  const { seen, added } = markAllCompletionsSeen(read().completionSeen, read().runtimeAgentStatuses, agents);
   const paneIds = Object.keys(added);
   if (!paneIds.length) return null;
   for (const paneId of paneIds) noteCompletionAcknowledged(paneId);

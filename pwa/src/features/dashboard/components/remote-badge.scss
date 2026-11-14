@@ -1,0 +1,17 @@
+.remote-machine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 45%;
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  span { overflow: hidden; text-overflow: ellipsis; }
+  svg { flex: none; }
+}

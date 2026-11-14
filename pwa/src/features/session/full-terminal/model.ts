@@ -9,6 +9,7 @@ export type FullTerminalViewFields = {
   title: string;
   working: boolean;
   stage: string;
+  hasFrame?: boolean;
   detail: LocalizedText;
   retry: boolean;
   busy: boolean;
@@ -27,6 +28,7 @@ export function sameFullTerminalView(a: FullTerminalViewFields, b: FullTerminalV
     a.title === b.title &&
     a.working === b.working &&
     a.stage === b.stage &&
+    a.hasFrame === b.hasFrame &&
     a.detail === b.detail &&
     a.retry === b.retry &&
     a.busy === b.busy &&

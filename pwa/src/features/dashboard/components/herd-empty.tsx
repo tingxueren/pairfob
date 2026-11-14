@@ -79,7 +79,7 @@ function RecentDirs({ empty, actions }: { empty: HerdEmptyView; actions: HerdAct
   );
 }
 
-const ACTION_ICON: Record<HerdEmptyAction, typeof Plus> = { create: Plus, retry: RefreshCw, details: SlidersHorizontal };
+const ACTION_ICON: Record<HerdEmptyAction, typeof Plus> = { listOptions: SlidersHorizontal, create: Plus, retry: RefreshCw, details: SlidersHorizontal };
 
 function EmptyActions({ empty, actions }: { empty: HerdEmptyView; actions: HerdActions }) {
   if (!empty.actions.length) return null;

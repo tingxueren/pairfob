@@ -484,3 +484,19 @@ html.full-terminal-active body {
     min-height: var(--full-terminal-min-host-height, 128px);
   }
 }
+
+/* Reconnect is a floating notice over the last screen; it never changes PTY geometry. */
+.full-terminal-state.is-retained {
+  inset: 12px 16px auto auto;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  flex-direction: row;
+  gap: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--term-plate) 94%, transparent);
+  box-shadow: 0 2px 12px #0004;
+  .full-terminal-state-spinner { width: 18px; height: 18px; }
+  .full-terminal-state-title { font-size: 13px; }
+  .full-terminal-state-detail { display: none; }
+}

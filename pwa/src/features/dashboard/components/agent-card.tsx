@@ -1,5 +1,6 @@
 import { Check, MoreHorizontal, Pin, PinOff } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
+import { RemoteBadge } from "./remote-badge";
 import { t } from "../../../lib/i18n";
 import { AgentAvatar, Button, Swap } from "../../../shared/ui/primitives";
 import { useObjectPress } from "../../../shared/ui/overlay";
@@ -104,6 +105,7 @@ export function AgentCard({ card, actions, hoverActions = false, listed = false 
               <span className="sr-only">{card.pinnedLabel}</span>
             </> : null}
             <span className="card-name">{card.title}</span>
+            <RemoteBadge machine={card.remoteMachine} />
           </span>
           <span className="card-meta">
             {/* The word marks its own change: a status the agent reported, or one that can no longer be confirmed. */}

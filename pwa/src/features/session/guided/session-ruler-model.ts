@@ -4,6 +4,7 @@
  * header. Pure: grouping, identity copy and placement are read from the same
  * inputs the list and the chrome use.
  */
+import type { ListPolicy } from "../../../lib/list-policy";
 import { groupAgents, type AgentCard, type ListGroup, type PinnedAt, type TouchedAt } from "../../../lib/ranking";
 import type { DashboardAgentCard } from "../../../lib/dashboard";
 import type { TabLayoutView } from "../../../lib/layout";
@@ -34,7 +35,7 @@ export type RulerView = {
   visible: boolean;
 };
 
-export function rulerView({ agents, listGroup, activation, pinned, currentPaneId, stale }: {
+export function rulerView({ agents, listGroup, activation, pinned, currentPaneId, stale, ...policy }: ListPolicy & {
   agents: readonly DashboardAgentCard[];
   listGroup: ListGroup;
   activation: TouchedAt;
@@ -43,7 +44,7 @@ export function rulerView({ agents, listGroup, activation, pinned, currentPaneId
   stale: boolean;
 }): RulerView {
   const rich = new Map(agents.map((agent) => [agent.paneId, agent]));
-  const ticks = groupAgents([...agents], listGroup, activation, pinned).flatMap((group) => group.items.flatMap((item, index) => {
+  const ticks = groupAgents([...agents], listGroup, activation, pinned, policy).flatMap((group) => group.items.flatMap((item, index) => {
     const agent = rich.get(item.paneId);
     if (!agent) return [];
     const identity = paneIdentity(agent, listGroup, stale);

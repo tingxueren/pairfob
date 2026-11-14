@@ -29,7 +29,7 @@ describe("the order the herd list last showed", () => {
 
   test("another list falls back to the live activation", () => {
     rememberShownListOrder({ p1: 10, p2: 20 }, ["p1", "p2"]);
-    expect(herdListScope().endsWith("\u0000flat")).toBeTrue();
+    expect(herdListScope().includes("\u0000flat\u0000")).toBeTrue();
     setListGroup("space");
     const live = { p1: 10, p2: 90 };
     expect(heldShownListOrder(live, ["p1", "p2"])).toEqual(live);

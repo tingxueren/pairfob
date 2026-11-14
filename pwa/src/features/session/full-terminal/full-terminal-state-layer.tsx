@@ -22,10 +22,11 @@ export function FullTerminalStateLayer({ onRetry }: { onRetry: () => void }) {
   const covered = useRef(now);
   if (!live) covered.current = now;
   const view = cover.leaving ? covered.current : now;
+  const retained = view.hasFrame && (view.stage === "opening" || view.stage === "waiting");
   const Icon = view.stage === "error" ? CircleAlert : LoaderCircle;
   return (
     <section
-      className={cover.leaving ? "full-terminal-state is-leaving" : "full-terminal-state"}
+      className={`full-terminal-state${cover.leaving ? " is-leaving" : ""}${retained ? " is-retained" : ""}`}
       hidden={!cover.mounted}
       inert={cover.leaving}
       data-stage={now.stage}

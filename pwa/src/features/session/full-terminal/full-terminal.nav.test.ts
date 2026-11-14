@@ -1,4 +1,4 @@
-import { expectSameNodes } from "../../../../test-support/node-identity";
+import { expectSameNode, expectSameNodes } from "../../../../test-support/node-identity";
 import { happy, resetBoardTestDOM } from "../../../../test-support/dom";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
@@ -737,7 +737,10 @@ test("reopened bridge counts its applied first frame and ignores a late old writ
     visibility = "visible";
     act(() => handleFullTerminalVisibility(false));
     await waitUntil(() => opens === 2, "second bridge");
+    const { getFullTerminalView } = await import("./full-terminal-view");
+    expect(getFullTerminalView().hasFrame).toBeFalse();
     writes[0]!();
+    expect(getFullTerminalView().hasFrame).toBeFalse();
     expect(connectionDiagnostics().filter(r => r.recovery_id === 201 && r.event === "terminal_first_frame")).toHaveLength(0);
     act(() => handleFullTerminalEvent(frame("1", true)));
     writes[1]!();
@@ -745,4 +748,39 @@ test("reopened bridge counts its applied first frame and ignores a late old writ
     writes[2]!();
     expect(connectionDiagnostics().filter(r => r.recovery_id === 202 && r.event === "terminal_first_frame")).toHaveLength(1);
   } finally { TestTerminal.prototype.write = originalWrite; }
+});
+
+
+test("a painted terminal keeps its renderer and uses a small notice during foreground reopen", async () => {
+  let opens = 0;
+  let finishReopen = () => {};
+  const session = live();
+  session.terminalOpen = (paneId, cols, rows) => {
+    const opened = { operationId: "op_AAECAwQFBgcICQoL", terminalId: "term_" + String(++opens).padStart(32, "1"),
+      paneId, cols, rows, encoding: "ansi" as const };
+    return opens === 1 ? Promise.resolve(opened) : new Promise(resolve => { finishReopen = () => resolve(opened); });
+  };
+  bootFullTerminal(session);
+  await waitUntil(() => opens === 1, "first open");
+  act(() => handleFullTerminalEvent({ type: "terminal_frame", terminalFrame: {
+    terminalId: "term_11111111111111111111111111111111", sequence: "1", width: 80, height: 24,
+    full: true, data: new TextEncoder().encode("last screen"), index: 0, count: 1,
+  } }));
+  const canvas = app.querySelector("canvas");
+  visibility = "hidden";
+  act(() => handleFullTerminalVisibility(true));
+  visibility = "visible";
+  act(() => handleFullTerminalVisibility(false));
+  await waitUntil(() => opens === 2, "foreground reopen");
+  expectSameNode(app.querySelector("canvas"), canvas);
+  expect(app.querySelector(".full-terminal-state.is-retained")).not.toBeNull();
+  act(() => finishReopen());
+  await waitUntil(() => app.querySelector<HTMLElement>(".full-terminal-state")?.dataset.stage === "live", "reopened");
+  act(() => disposeFullTerminal());
+  const next = live();
+  next.terminalOpen = () => new Promise(() => {});
+  bootFullTerminal(next);
+  expect(app.querySelector(".full-terminal-state.is-retained")).toBeNull();
+  const { getFullTerminalView } = await import("./full-terminal-view");
+  expect(getFullTerminalView().hasFrame).toBeFalse();
 });

@@ -8,6 +8,8 @@ export type FullTerminalViewSnapshot = {
   title: string;
   working: boolean;
   stage: FullTerminalStage;
+  /** Last applied screen belongs to this renderer/owner, even during reconnect. */
+  hasFrame?: boolean;
   detail: LocalizedText;
   retry: boolean;
   busy: boolean;

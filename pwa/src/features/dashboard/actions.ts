@@ -137,6 +137,7 @@ export function createHerdActions(ports: HerdActionPorts): HerdActions {
       return ports.markAllRead();
     },
     runEmptyAction(kind) {
+      if (kind === "listOptions") { ports.openGroupModeMenu(); return; }
       if (kind === "create") ports.openCreate();
       else if (kind === "retry") reconnectLiveSessions("probe");
       else openSettingsSection("connection");

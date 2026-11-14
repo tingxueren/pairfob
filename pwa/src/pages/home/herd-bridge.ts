@@ -24,6 +24,7 @@
  *
  * Presentation (`features/dashboard`) and the pure models never import this file.
  */
+import { visibleListAgents } from "../../lib/list-policy";
 import { capabilityEnabled, operationBusy } from "../../features/operations/capabilities-store";
 import { computersStore, currentHerdSession, liveSession } from "../../features/computers/catalog-store";
 import { computerDisplayName } from "../../lib/computer-catalog";
@@ -31,7 +32,7 @@ import { settingsNetworkPath, settingsNetworkPathInUse } from "../../features/se
 import { t } from "../../lib/i18n";
 import { connectionStore, networkOnline } from "../../features/connection/connection-store";
 import { dashboardStore, liveAgents } from "../../features/dashboard/catalog-store";
-import { listGroup, listGroupCollapsed, paneActivated, panePinned, paneTouched, preferencesStore, setListGroupCollapsed, togglePanePin, type PreferencesRecord } from "../../features/settings/preferences-store";
+import { listPolicy, listGroup, listGroupCollapsed, paneActivated, panePinned, paneTouched, preferencesStore, setListGroupCollapsed, togglePanePin, type PreferencesRecord } from "../../features/settings/preferences-store";
 import { acknowledgeAllCompletions, acknowledgePaneCompletion, restoreCompletions } from "../../features/dashboard/catalog-store";
 import { openGroupModeSheet } from "../../features/dashboard/components/group-mode-sheet";
 import { openCreateSheet, openQuickCreate } from "./create-bridge";
@@ -204,10 +205,10 @@ export { herdSessionKey } from "../../features/session/session-store";
  * reader changing one beside the rail must not build the whole list again.
  */
 export function herdPreferencesKey(snapshot: object): string {
-  const record = snapshot as Pick<PreferencesRecord, "listGroup" | "listGroupCollapsed" | "paneTouched" | "paneActivated" | "panePinned">;
+  const record = snapshot as Pick<PreferencesRecord, "listSort" | "showRemote" | "listGroup" | "listGroupCollapsed" | "paneTouched" | "paneActivated" | "panePinned">;
   const stamps = (map: Record<string, number>) => Object.keys(map).map((paneId) => `${paneId}=${map[paneId]}`).join(",");
   const folds = (map: Record<string, boolean>) => Object.keys(map).map((id) => `${id}=${map[id] ? 1 : 0}`).join(",");
-  return `${record.listGroup}\u0000${stamps(record.paneActivated)}\u0000${stamps(record.paneTouched)}`
+  return `${record.listSort}\u0000${record.showRemote}\u0000${record.listGroup}\u0000${stamps(record.paneActivated)}\u0000${stamps(record.paneTouched)}`
     + `\u0000${stamps(record.panePinned)}\u0000${folds(record.listGroupCollapsed)}`;
 }
 
@@ -291,6 +292,8 @@ export function readHerdInput(painted: HerdPaint): HerdModelInput {
   const status = herdStatus();
   return {
     agents: dashboard.agents,
+    listSort: preferences.listSort,
+    showRemote: preferences.showRemote,
     listGroup: listGroup(),
     paneTouched: preferences.paneTouched,
     paneActivated: listActivation(preferences.paneActivated, dashboard.agents, dashboard.snapshotLoaded),
@@ -334,6 +337,7 @@ export function readHerdAttentionInput(): HerdAttentionInput {
   const online = networkOnline();
   return {
     agents: dashboardStore.get().agents,
+    showRemote: preferencesStore.get().showRemote,
     connected,
     networkOnline: online,
     reading: runtime.identityPending,
@@ -388,16 +392,16 @@ export function consumeHerdAttention(): void {
   // Action-time boundary: read the live owner records, not the published
   // snapshots, so a typed action that landed since the last commit is visible
   // here. React projections keep using readHerdInput's stable snapshots.
-  const agents = liveAgents();
+  const agents = visibleListAgents(liveAgents(), listPolicy());
   const group = listGroup();
   const consumed = openHerdPaint([...agents], group);
-  const rebuilt = openRoster(agents, group, herdScope());
+  const rebuilt = openRoster(agents, `${group}:${listPolicy().listSort}:${listPolicy().showRemote}`, herdScope());
   const activation = listActivation(paneActivated(), agents, dashboardStore.get().snapshotLoaded);
   // The list the reader is looking at, for controls that outlive this paint.
   rememberShownListOrder(activation, agents.map((agent) => agent.paneId));
   if (consumed.completed.length && document.visibilityState === "visible") haptic(COMPLETION_HAPTIC_MS);
   if (group !== "flat") {
-    const groups = groupAgents([...agents], group, activation, panePinned());
+    const groups = groupAgents(agents, group, activation, panePinned(), listPolicy());
     const collapsed = listGroupCollapsed();
     const synced = syncGroupCollapsed(groups, collapsed);
     if (!sameCollapsed(synced, collapsed)) setListGroupCollapsed(synced);
@@ -443,7 +447,8 @@ export function herdActionPorts(): HerdActionPorts {
       acknowledgePaneCompletion(paneId);
     },
     markAllRead: () => {
-      const done = acknowledgeAllCompletions();
+      const visibleIds = new Set(visibleListAgents(liveAgents(), listPolicy()).map(agent => agent.paneId));
+      const done = acknowledgeAllCompletions(visibleIds);
       return done ? { count: done.count, undo: () => restoreCompletions(done.added) } : null;
     },
     openCreate: (workspace) => {

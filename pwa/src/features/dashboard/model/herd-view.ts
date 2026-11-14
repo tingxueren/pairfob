@@ -7,6 +7,7 @@
  * never touches the DOM, and never consumes attention memory: the caller
  * consumes attention once per paint and hands the resulting marks in.
  */
+import { projectName, remoteMachine, visibleListAgents, type ListPolicy } from "../../../lib/list-policy";
 import { agentDisplaySummary } from "../../../lib/agent-inspect";
 import { agentMeta, agentStatusLabel, agentTitle, cwdName, statusLabel, terminalMeta, type DashboardAgentCard } from "../../../lib/dashboard";
 import type { HerdPaint, StatusMark } from "../../../lib/herd-attention";
@@ -59,7 +60,7 @@ export function hostStatusKey(host: HerdHostView): string {
   return `${host.tone}\u0000${host.line.replace(/\d+/g, "")}`;
 }
 
-export type HerdModelInput = {
+export type HerdModelInput = ListPolicy & {
   /** The published card list; a domain snapshot is read-only by contract. */
   agents: readonly DashboardAgentCard[];
   listGroup: ListGroup;
@@ -100,6 +101,7 @@ export type HerdModelInput = {
 };
 
 export type HerdCardView = {
+  remoteMachine?: string;
   paneId: string;
   /** A plain shell reports no agent status; only agents carry a status word. */
   kind: "agent" | "terminal";
@@ -130,6 +132,7 @@ export type HerdCardView = {
 };
 
 export type HerdGroupView = {
+  remoteMachine?: string;
   id: string;
   title: string;
   count: number;
@@ -163,8 +166,8 @@ export type HerdAttentionItem = {
  * - `offline` / `reconnecting`: the header already says so; the list only
  *   notes what will happen and keeps still placeholder rows.
  */
-export type HerdEmptyKind = "none" | "noCreate" | "exited" | "unverifiable" | "offline" | "reconnecting";
-export type HerdEmptyAction = "create" | "retry" | "details";
+export type HerdEmptyKind = "hiddenRemote" | "none" | "noCreate" | "exited" | "unverifiable" | "offline" | "reconnecting";
+export type HerdEmptyAction = "listOptions" | "create" | "retry" | "details";
 
 export type HerdEmptyView = {
   kind: HerdEmptyKind;
@@ -331,9 +334,9 @@ export function herdStale(input: HerdReach): boolean {
  * the list: the tab bar's badge asks on every publication, and grouping, ranking
  * and every row's copy are none of its business.
  */
-export function herdAttentionCount(input: Pick<HerdModelInput, "agents"> & HerdReach): number {
+export function herdAttentionCount(input: Pick<HerdModelInput, "agents" | "showRemote"> & HerdReach): number {
   if (herdStale(input)) return 0;
-  return input.agents.filter((agent) => herdNeedsReader(agent) !== "").length;
+  return visibleListAgents(input.agents, input).filter((agent) => herdNeedsReader(agent) !== "").length;
 }
 
 /**
@@ -400,6 +403,7 @@ function cardView(
   const identity = paneIdentity(agent, input.listGroup, stale);
   return {
     paneId: agent.paneId,
+    remoteMachine: remoteMachine(agent),
     kind: identity.kind,
     agentKind: identity.agentKind,
     statusLabel: identity.statusLabel,
@@ -447,7 +451,8 @@ export function groupHasMenu(listGroup: ListGroup, group: AgentGroup): boolean {
  * what the model says.
  */
 export function buildHerdViewModel(input: HerdModelInput): HerdViewModel {
-  const groups = groupAgents([...input.agents], input.listGroup, input.paneActivated, input.panePinned);
+  const agents = visibleListAgents(input.agents, input);
+  const groups = groupAgents(agents, input.listGroup, input.paneActivated, input.panePinned, input);
   const reachable = input.connected && input.networkOnline;
   const reading = herdReading(input);
   const stale = herdStale(input);
@@ -468,7 +473,8 @@ export function buildHerdViewModel(input: HerdModelInput): HerdViewModel {
     const menuAgent = groupMenuAgent(group);
     return {
       id: group.id,
-      title: group.title,
+      title: input.listGroup === "space" ? projectName(group.title, remoteMachine(group.items[0])) : group.title,
+      remoteMachine: input.listGroup === "space" && group.id !== PINNED_GROUP_ID ? remoteMachine(group.items[0]) : "",
       count: group.items.length,
       index,
       collapsed: grouped && input.groupCollapsed[group.id] === true,
@@ -481,7 +487,7 @@ export function buildHerdViewModel(input: HerdModelInput): HerdViewModel {
       cards,
     };
   });
-  const attention: HerdAttentionItem[] = stale ? [] : input.agents
+  const attention: HerdAttentionItem[] = stale ? [] : agents
     .map((agent) => ({ agent, kind: herdNeedsReader(agent) }))
     .filter((item): item is { agent: DashboardAgentCard; kind: "blocked" | "done" } => item.kind !== "")
     .sort((left, right) => Number(left.kind === "done") - Number(right.kind === "done")
@@ -499,7 +505,10 @@ export function buildHerdViewModel(input: HerdModelInput): HerdViewModel {
     grouped,
     stagger: input.attention.stagger,
     epoch: input.listEpoch ?? 0,
-    empty: input.agents.length || loading ? null : herdEmptyView({ ...input, hostName: input.host.name }),
+    empty: agents.length || loading ? null : input.agents.length && input.showRemote === false
+      ? { kind: "hiddenRemote", title: t("list.remoteHidden"), sub: t("list.remoteHiddenSub"), command: "", recentDirs: [],
+          actions: [{ label: t("list.modeSheet"), kind: "listOptions", primary: false, disabled: false }] }
+      : herdEmptyView({ ...input, hostName: input.host.name }),
     loading,
     status: input.status,
     host: input.host,

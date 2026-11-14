@@ -70,6 +70,8 @@ export function SessionRuler({ paneId, agents, listGroup, stale }: SessionRulerP
   const view = rulerView({
     agents,
     listGroup,
+    listSort: prefs.listSort,
+    showRemote: prefs.showRemote,
     activation: heldShownListOrder(prefs.paneActivated, agents.map((agent) => agent.paneId)),
     pinned: prefs.panePinned,
     currentPaneId: paneId,

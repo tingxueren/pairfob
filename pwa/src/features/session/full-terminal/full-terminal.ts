@@ -129,6 +129,7 @@ function captureFullTerminalView(): FullTerminalViewSnapshot {
     title: selected ? agentTitle(selected) : t("title.terminal"),
     working: canInterruptAgent(selected?.status ?? ""),
     stage: terminalStatus.stage,
+    hasFrame: terminalStatus.hasFrame,
     detail: terminalStatus.detail,
     retry: Boolean(isFullTerminal() && terminalStatus.retry && !opening && !bridgeId),
     busy: opening,
@@ -721,6 +722,7 @@ export function handleFullTerminalEvent(event: SessionEvent): boolean {
             fullTerminalPerf.writeCompleted(performance.now() - writeStartedAt, commandMarker);
             markAppPerformance("first-terminal-write");
             terminalRecovery?.firstFrame();
+            terminalStatus.frameApplied();
           }
         });
       }

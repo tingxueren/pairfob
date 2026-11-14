@@ -2,7 +2,7 @@ import { Bot, Folder, List, ListTree, Plus } from "lucide-react";
 import { useObjectPress } from "../../../shared/ui/overlay";
 import { batch } from "../../../shared/model/domain-store";
 import { dashboardStore } from "../catalog-store";
-import { listGroup, preferencesStore, setListGroup, setListGroupCollapsed } from "../../settings/preferences-store";
+import { listPolicy, listGroup, preferencesStore, setListGroup, setListGroupCollapsed } from "../../settings/preferences-store";
 import { groupAgents, syncGroupCollapsed, type ListGroup } from "../../../lib/ranking";
 import { t } from "../../../lib/i18n";
 // Temporary shared-UI paths: the primitives are the approved shared surface.
@@ -31,6 +31,7 @@ export function chooseListGroup(id: ListGroup): void {
             id,
             preferencesStore.get().paneActivated,
             preferencesStore.get().panePinned,
+            listPolicy(),
           ),
           {},
         );
