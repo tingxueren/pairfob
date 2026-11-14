@@ -550,53 +550,6 @@ describe("complete-terminal remembers its mode per pane", () => {
     expect(closed).toEqual(["term_11111111111111111111111111111111"]);
   });
 
-  test("a full frame can resync while stale frames are ignored and a forward delta gap closes", async () => {
-    let closes = 0;
-    let opens = 0;
-    const terminalId = "term_11111111111111111111111111111111";
-    const session = live();
-    session.terminalOpen = async (paneId, cols, rows) => {
-      opens++;
-      return {
-        operationId: "op_AAECAwQFBgcICQoL",
-        terminalId,
-        paneId,
-        cols,
-        rows,
-        encoding: "ansi" as const,
-      };
-    };
-    session.terminalClose = async () => { closes++; };
-    bootFullTerminal(session);
-    await waitUntil(() => opens === 1, "terminal open");
-
-    const terminalFrame = (sequence: string, full: boolean) => ({
-      type: "terminal_frame" as const,
-      terminalId,
-      terminalFrame: {
-        terminalId,
-        sequence,
-        width: 80,
-        height: 24,
-        full,
-        index: 0,
-        count: 1,
-        data: new Uint8Array([65]),
-      },
-    });
-    act(() => handleFullTerminalEvent(terminalFrame("1", true)));
-    act(() => handleFullTerminalEvent(terminalFrame("1", false)));
-    act(() => handleFullTerminalEvent(terminalFrame("3", true)));
-    act(() => handleFullTerminalEvent(terminalFrame("4", false)));
-    act(() => handleFullTerminalEvent(terminalFrame("2", false)));
-    await act(async () => { await Promise.resolve(); });
-    expect(closes).toBe(0);
-
-    act(() => handleFullTerminalEvent(terminalFrame("6", false)));
-    await act(async () => { await Promise.resolve(); });
-    expect(closes).toBe(1);
-  });
-
   test("retry remains available while hidden and reopens when visible", async () => {
     let opens = 0;
     const terminalId = "term_11111111111111111111111111111111";

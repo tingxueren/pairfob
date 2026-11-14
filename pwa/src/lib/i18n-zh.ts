@@ -582,6 +582,8 @@ export const zh = {
   "ft.takeoverAsk": "另一个终端客户端正在控制这个 pane。要从这里接管输入和窗口大小吗？",
   "ft.openFail": "无法打开终端：{error}",
   "ft.paused": "终端连接已暂停",
+  "ft.gapInput": "终端画面中断，刚才的输入可能未送达。请核对终端后重连，避免重复发送。",
+  "ft.resync": "正在恢复终端画面…",
   "ft.gap": "终端画面出现缺口，请点重连",
   "ft.tooFast": "终端输出过快，请点重连",
   "ft.closed": "终端已关闭",

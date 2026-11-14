@@ -579,6 +579,8 @@ export const en: { [K in keyof typeof zh]: string } = {
   "ft.takeoverAsk": "Another terminal client is controlling this pane. Take over input and size from here?",
   "ft.openFail": "Could not open the terminal: {error}",
   "ft.paused": "Terminal connection paused",
+  "ft.gapInput": "The terminal view was interrupted and recent input may not have arrived. Check the terminal before reconnecting to avoid sending twice.",
+  "ft.resync": "Restoring the terminal screen…",
   "ft.gap": "The terminal skipped frames. Tap reconnect",
   "ft.tooFast": "Terminal output is too fast. Tap reconnect",
   "ft.closed": "Terminal closed",

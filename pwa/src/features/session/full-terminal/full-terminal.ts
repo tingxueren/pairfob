@@ -1,3 +1,5 @@
+import { FullTerminalResync } from "./full-terminal-resync";
+import { webglFailure, rendererContextLost } from "./full-terminal-renderer-failure";
 import { TerminalRecoveryDiagnostics } from "./terminal-recovery-diagnostics";
 import { terminalLinkProvider } from "./full-terminal-links";
 import { encodeLiveKey } from "../keypad/live-key";
@@ -66,7 +68,7 @@ import { FullTerminalFrameGate } from "./full-terminal-frame-gate";
 import { FullTerminalOpenTracker } from "./full-terminal-open-tracker";
 import { FullTerminalResizeGate } from "./full-terminal-resize";
 import { terminalRoomHeight } from "./full-terminal-room";
-import { fullTerminalOptions, terminalScreenText, openWebglTerminal, WEBGL_CONTEXT_LOST, WEBGL_UNAVAILABLE } from "./full-terminal-renderer";
+import { fullTerminalOptions, terminalScreenText, openWebglTerminal, WEBGL_UNAVAILABLE } from "./full-terminal-renderer";
 import {
   FullTerminalStatus,
   setFullTerminalDocumentMode,
@@ -104,6 +106,7 @@ let leaveResult: { transition: FullTerminalLeaveTransition | null } | null = nul
 let leaveSeq = 0;
 let commandPump: TerminalCommandPump | null = null;
 const frameGate = new FullTerminalFrameGate();
+const resync = new FullTerminalResync();
 const openTracker = new FullTerminalOpenTracker();
 const resizeGate = new FullTerminalResizeGate();
 let pendingWriteBytes = 0;
@@ -294,19 +297,9 @@ function bindInput(host: HTMLElement): void {
   emitFullTerminalView();
 }
 
-function webglFailure(error: unknown): LocalizedText {
-  const message = error instanceof Error ? error.message : "";
-  if (message === WEBGL_CONTEXT_LOST) return copy("ft.webglLost");
-  if (message === WEBGL_UNAVAILABLE) return copy("ft.webglUnavailable");
-  return messageCopy(error);
-}
-
 function handleRendererContextLoss(version: number): void {
-  if (version !== rendererVersion || !isFullTerminal()) return;
-  const reason = copy("ft.loadFail", { error: copy("ft.webglLost") });
-  void suspendBridge(true, reason);
-  disposeRenderer();
-  terminalStatus.fail(reason);
+  rendererContextLost(version === rendererVersion && isFullTerminal(),
+    (reason) => { void suspendBridge(true, reason); }, disposeRenderer, (reason) => terminalStatus.fail(reason));
 }
 
 function scheduleMount(host: HTMLElement): void {
@@ -516,11 +509,19 @@ async function resumeFullTerminal(): Promise<void> {
   void openTracker.run(() => openBridge(false));
 }
 
-export function retryFullTerminal(): void {
-  if (opening || bridgeId) return;
-  haptic(8);
-  void resumeFullTerminal();
+/** Missing output retires only the view, never the program or an uncertain command. */
+async function resyncFullTerminal(): Promise<void> {
+  if (commandPump?.hasPendingInput()) { await suspendBridge(true, copy("ft.gapInput")); return; }
+  const owner = fullTerminalOwnerKey(), renderer = rendererVersion;
+  let version = bridgeVersion;
+  const recovered = await resync.recover({ owner,
+    pause: () => { terminalStatus.wait(copy("ft.resync")); const task = suspendBridge(true, undefined, false); version = bridgeVersion; return task; },
+    current: () => renderer === rendererVersion && version === bridgeVersion && owner === fullTerminalOwnerKey(), resume: resumeFullTerminal,
+  });
+  if (!recovered && isFullTerminal() && renderer === rendererVersion && version === bridgeVersion && owner === fullTerminalOwnerKey()) await suspendBridge(true, copy("ft.gap"));
 }
+
+export function retryFullTerminal(): void { resync.retry(Boolean(opening || bridgeId), () => { haptic(8); void resumeFullTerminal(); }); }
 
 export function setTermFit(next: TermFit, cols: TermCols = termCols()): void {
   if (termFit() === next && termCols() === cols) return;
@@ -694,7 +695,7 @@ export function handleFullTerminalEvent(event: SessionEvent): boolean {
       const admission = frameGate.preflight(sequence, frame.full);
       if (admission === "stale") return true;
       if (admission === "gap") {
-        void suspendBridge(true, copy("ft.gap"));
+        void resyncFullTerminal();
         return true;
       }
       if (pendingWriteBytes + frame.data.byteLength > MAX_RENDER_QUEUE_BYTES) {

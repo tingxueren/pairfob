@@ -185,6 +185,10 @@ export class TerminalCommandPump {
     this.enqueue({ kind: "scroll", ...command });
   }
 
+  hasPendingInput(): boolean {
+    return this.inFlight?.command.kind === "input" || this.queue.some(({ command }) => command.kind === "input");
+  }
+
   stop(): void {
     if (this.stopped) return;
     const dropped = this.queuedState();

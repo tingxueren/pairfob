@@ -95,7 +95,7 @@ describe("complete-terminal chrome stays a distinct surface", () => {
     expect(fitController).toContain("integerizeDomRows");
     expect(fitController).toContain("clearScreenScale");
     expect(source).toContain("openWebglTerminal");
-    expect(source).toContain("WEBGL_CONTEXT_LOST");
+    expect(await Bun.file(new URL("./full-terminal-renderer-failure.ts", import.meta.url)).text()).toContain("WEBGL_CONTEXT_LOST");
     expect(source).not.toContain("fillLineHeight");
     expect(source).not.toContain("planScale");
     expect(source).not.toContain("applyScreenScale");
