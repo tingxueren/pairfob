@@ -33,6 +33,15 @@ that instance; operators can deploy their own relay with
 `scripts/selfhost-relay.ts` (see `docs/selfhost.md`). The `internal/mux` Hub is
 an in-process test stand-in, not a deployable origin.
 
+## Maintained fork acceptance
+
+After every fork change, run the affected checks plus the real four-node PWA
+acceptance before publishing or promoting. Run collection from the operator Mac
+with `bash scripts/verify-core-ui.sh --runner dorm-dev`; development, Go replay
+and Chromium stay on dorm-dev. See the maintenance document for dependencies,
+private artifacts, source matching and the live-transport/physical-phone boundary.
+Do not treat missing nodes or coverage as a pass. Keep this section out of upstream PRs.
+
 ## File size (hard limit)
 
 **Each handwritten source file is at most 800 lines.** Applies to Go, Rust,

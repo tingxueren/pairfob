@@ -62,3 +62,8 @@ Mac 二进制已可交叉编译，但需要本机批准与实际验收后才能�
 失效终端拒绝及独立目标 core 的 machine.exec 全链路。
 真实历史扫描覆盖 818 Claude、26 Codex 记录；注入上下文不进入用户对话。
 开发证据保存在 `.dev/core-parity/`，不提交历史记录及部署凭证。
+
+后续每次 fork 改动必须执行四节点真实数据网页验收，入口为
+`bash scripts/verify-core-ui.sh --runner dorm-dev`。流程、环境、覆盖边界及
+私有截图/报告位置见 [维护说明](../FORK_MAINTENANCE.zh-CN.md#每次改动后的四节点网页验收必跑)。
+该验收不替代实体手机与 live daemon/relay 链路检查。
