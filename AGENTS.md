@@ -1,5 +1,15 @@
 # Pairfob agent notes
 
+## Maintained fork Git identity
+
+For this personal fork, author new operator commits as
+`tingxueren <zhangdongsheng1224@gmail.com>`. Configure Git with `--local`
+inside the Pairfob checkout only; never change the global Git identity or
+other repositories for this task. Verify the effective author and committer
+before committing, and preserve upstream authors and committers. See
+[FORK_MAINTENANCE.zh-CN.md](FORK_MAINTENANCE.zh-CN.md) for setup and checks.
+Keep this fork-specific section and maintenance document out of upstream PRs.
+
 **Product, protocol, and scale are defined by this repo and `proto/`.** The
 hosted data plane is `pairfob.v2` (Cloudflare Worker + one Durable Object per
 `daemon_id`, origin `https://pairfob.com`). Envelope bytes stay `pairfob.v1`:
