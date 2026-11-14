@@ -59,6 +59,7 @@ func TestServiceRuntimeEscapesSystemdSpecifiersAndNewlines(t *testing.T) {
 }
 
 func TestServiceKeepsInvalidExplicitHerdrOverrideForDiagnosis(t *testing.T) {
+	t.Setenv("PAIRFOB_RUNTIME", "herdr")
 	t.Chdir(t.TempDir())
 	t.Setenv("HERDR_BIN", "missing/herdr")
 	for _, entry := range serviceRuntimeEnvironment() {

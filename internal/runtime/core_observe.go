@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -79,14 +80,29 @@ func (c *Core) coreReadPane(ctx context.Context, query PaneReadQuery) (View, err
 	if !hello.has("terminal.read") {
 		return nil, unsupported("pane.read", "pane read is unsupported by the terminal core")
 	}
+	method := "terminal.read"
+	params := map[string]any{"terminal": terminal, "lines": lines}
+	if query.Source == SourceVisible && query.Format == FormatANSI && hello.has("terminal.read_ansi") {
+		method = "terminal.read_ansi"
+		params = map[string]any{"terminal": terminal}
+	}
 	var read coreReadResult
-	if err := conn.Call(ctx, "terminal.read", map[string]any{"terminal": terminal, "lines": lines}, &read); err != nil {
-		return nil, c.endCall(conn, "pane.read", err, false, false)
+	readErr := conn.Call(ctx, method, params, &read)
+	var rpcErr *coreRPCError
+	// A local hello does not promise the target remote core has this optional
+	// method. Only explicit unsupported replies justify a plain-screen read.
+	if method == "terminal.read_ansi" && errors.As(readErr, &rpcErr) && (rpcErr.Kind == "unknown_method" || rpcErr.Kind == "needs_update") {
+		method = "terminal.read"
+		read = coreReadResult{}
+		readErr = conn.Call(ctx, method, map[string]any{"terminal": terminal, "lines": 0}, &read)
 	}
-	if read.How != "screen" && read.How != "history" && read.How != "stitched" {
-		return nil, c.endCall(conn, "pane.read", coreProtocol("terminal.read", "invalid terminal read"), false, false)
+	if readErr != nil {
+		return nil, c.endCall(conn, "pane.read", readErr, false, false)
 	}
-	// Core only returns plain text. ANSI is a documented degradation: the
-	// PWA's renderer accepts the same text, so it is not a fault.
+	if (method == "terminal.read_ansi" && read.How != "screen") || (read.How != "screen" && read.How != "history" && read.How != "stitched") {
+		return nil, c.endCall(conn, "pane.read", coreProtocol(method, "invalid terminal read"), false, false)
+	}
+	// Older cores expose only text reads; retain that degradation unless the
+	// server explicitly advertises the separate colored-screen method.
 	return PaneReadView{Text: read.Text, Truncated: !read.Complete}, nil
 }
