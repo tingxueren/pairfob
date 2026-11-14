@@ -154,21 +154,8 @@ func projectCoreApp(hello coreHello, ts []coreTerminal, docs map[string]coreAppD
 			}
 			seenSpaces[sp.ID] = true
 			wid := coreAppWorkspaceID(machine, sp.ID)
-			label := strings.TrimSpace(sp.Name)
-			if label == "" {
-				label = coreFolderName(sp.Folder)
-			}
-			if label == "" {
-				label = sp.ID
-			}
-			if machine != "" {
-				label = machine + " · " + label
-			}
-			w := Workspace{WorkspaceID: wid, Label: label}
-			if machine == "" {
-				w.Cwd = sp.Folder
-			}
 			statuses := []string{}
+			spaceMembers := []coreTerminal{}
 			for _, tab := range sp.Tabs {
 				if !coreAddressPartPattern.MatchString(tab.ID) || seenTabs[tab.ID] {
 					continue
@@ -199,6 +186,7 @@ func projectCoreApp(hello coreHello, ts []coreTerminal, docs map[string]coreAppD
 				out.Layouts = append(out.Layouts, layout)
 				for _, t := range members {
 					used[t.Address] = true
+					spaceMembers = append(spaceMembers, t)
 					p := corePaneProjection(t, wid)
 					p.TabID = tid
 					out.Panes = append(out.Panes, p)
@@ -206,6 +194,13 @@ func projectCoreApp(hello coreHello, ts []coreTerminal, docs map[string]coreAppD
 				}
 			}
 			if len(statuses) > 0 {
+				label, fromWhere := coreAppWorkspaceLabel(sp, spaceMembers)
+				w := Workspace{WorkspaceID: wid, Label: label}
+				if machine == "" {
+					w.Cwd = coreAppWorkspaceCwd(sp.Folder, label, fromWhere, spaceMembers)
+				} else {
+					w.Label = machine + " · " + label
+				}
 				w.AgentStatus = coreWorkspaceAgentStatus(statuses)
 				out.Workspaces = append(out.Workspaces, w)
 			}
@@ -244,6 +239,50 @@ func projectCoreApp(hello coreHello, ts []coreTerminal, docs map[string]coreAppD
 	}
 	return out
 }
+func coreAppWorkspaceLabel(space coreAppSpace, terminals []coreTerminal) (string, bool) {
+	label := ""
+	for _, terminal := range terminals {
+		candidate := coreWhereWorkspaceLabel(terminal)
+		if candidate == "" {
+			continue
+		}
+		if label != "" && candidate != label {
+			label = ""
+			break
+		}
+		label = candidate
+	}
+	if label != "" {
+		return label, true
+	}
+	label = strings.TrimSpace(space.Name)
+	if label == "" {
+		label = coreFolderName(space.Folder)
+	}
+	if label == "" {
+		label = space.ID
+	}
+	return label, false
+}
+
+func coreAppWorkspaceCwd(folder, label string, fromWhere bool, terminals []coreTerminal) string {
+	if !fromWhere || coreFolderName(folder) == label {
+		return folder
+	}
+	candidates := map[string]bool{}
+	for _, terminal := range terminals {
+		if cwd := coreResolvedCwd(terminal); coreFolderName(cwd) == label {
+			candidates[cwd] = true
+		}
+	}
+	if len(candidates) == 1 {
+		for cwd := range candidates {
+			return cwd
+		}
+	}
+	return folder
+}
+
 func coreFolderName(folder string) string {
 	s := strings.TrimRight(folder, "/\\")
 	i := strings.LastIndexAny(s, "/\\")

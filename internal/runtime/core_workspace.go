@@ -12,6 +12,19 @@ type coreWorkspaceGroup struct {
 	terminals []coreTerminal
 }
 
+func coreWhereWorkspaceLabel(terminal coreTerminal) string {
+	label := strings.TrimSpace(terminal.Labels["where"])
+	if strings.Count(label, " / ") > 1 {
+		// The text is not escaped; either name can contain the separator.
+		// Never guess a project name from an ambiguous display label.
+		return ""
+	}
+	if cut := strings.Index(label, " / "); cut >= 0 {
+		label = strings.TrimSpace(label[:cut])
+	}
+	return label
+}
+
 func coreTerminalWorkspace(terminal coreTerminal) (key, label string) {
 	key = coreWorkspaceKey(terminal.Address)
 	label = coreWorkspaceLabel(key)
@@ -22,14 +35,7 @@ func coreTerminalWorkspace(terminal coreTerminal) (key, label string) {
 	key += ":space:" + space
 	// App writes where as <space name> / <tab name>. Keep it display-only:
 	// missing text still gets its own group, and duplicate names never merge.
-	label = strings.TrimSpace(terminal.Labels["where"])
-	if strings.Count(label, " / ") > 1 {
-		// The text is not escaped; either name can contain the separator.
-		// Never guess a project name from an ambiguous display label.
-		label = space
-	} else if cut := strings.Index(label, " / "); cut >= 0 {
-		label = strings.TrimSpace(label[:cut])
-	}
+	label = coreWhereWorkspaceLabel(terminal)
 	if label == "" {
 		label = space
 	}
