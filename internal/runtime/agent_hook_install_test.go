@@ -111,7 +111,7 @@ func TestAgentObservationInstallFailsClosed(t *testing.T) {
 	if err := InstallAgentObservation("amp", "/safe/pairfob"); err == nil {
 		t.Fatal("overwrote user plugin")
 	}
-	if err := InstallAgentObservation("codex", "/safe/pairfob"); err == nil {
+	if err := InstallAgentObservation("unknown-agent", "/safe/pairfob"); err == nil {
 		t.Fatal("replaced native integration")
 	}
 }

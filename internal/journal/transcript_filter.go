@@ -16,6 +16,7 @@ var codexInjectedTags = []string{
 	"environment_context", "user_instructions", "developer_instructions", "INSTRUCTIONS",
 	"turn_aborted", "subagent_notification", "skill", "codex_internal_context",
 	"recommended_plugins",
+	"external_codex_apps_open_page", "external_codex_apps_selected_page_part_1_of_1",
 	// A task orchestrator submits its request as a leading <task> block
 	// followed by policy blocks; the person never typed them.
 	"task", "research_mode", "grounding_rules", "citation_rules",
@@ -257,6 +258,18 @@ func claudeUserEvent(text string) (Event, bool) {
 		return Event{Type: EventCommand, Text: "! " + input}, true
 	}
 	text, _ = withoutClaudeTeammateWrapper(text)
+	for {
+		next, ok := withoutLeadingBlock(strings.TrimLeft(text, " \t\r\n"), []string{"external_system_instructions", "conversation_history"})
+		if !ok {
+			break
+		}
+		text = strings.TrimSpace(next)
+	}
+	// Older external harness records truncate this exact generated preamble
+	// without a closing tag. It is an injected record, not a typed XML example.
+	if strings.HasPrefix(strings.TrimSpace(text), "<conversation_history>\nThe conversation so far, each turn of it answered already.") {
+		return Event{}, false
+	}
 	stripped := unwrapTagLines(stripTaggedBlocks(text, claudeInjectedTags), "pasted_content")
 	if stripped != text {
 		text = strings.TrimSpace(stripped)

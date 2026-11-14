@@ -516,8 +516,6 @@ func TestCorePromptAgent(t *testing.T) {
 
 func TestCoreUnsupportedCommands(t *testing.T) {
 	commands := []Command{
-		RenameTabCommand{TabID: "term:t3", Label: "x"},
-		RenameWorkspaceCommand{WorkspaceID: "core", Label: "x"},
 		CloseTabCommand{TabID: "term:t3"},
 		CloseWorkspaceCommand{WorkspaceID: "core"},
 		CreateTabCommand{WorkspaceID: "core"},

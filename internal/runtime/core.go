@@ -13,8 +13,12 @@ import (
 // inside this adapter; callers only see descriptors, snapshots, views and
 // receipts. Named core sessions are not part of this unit.
 type Core struct {
-	command string
-	dial    coreDial
+	docMu         sync.Mutex
+	appDocs       map[string]coreAppDocument
+	appDocAt      time.Time
+	appDocLoading bool
+	command       string
+	dial          coreDial
 
 	opMu sync.Mutex
 

@@ -228,7 +228,7 @@ func TestCoreDescribeUsesHelloAndTemplates(t *testing.T) {
 	if len(descriptor.AgentKinds) != 1 || descriptor.AgentKinds[0].Kind != "codex" {
 		t.Fatalf("agent kinds=%+v", descriptor.AgentKinds)
 	}
-	if !descriptor.Supports(FeatureSnapshot) || !descriptor.Supports(FeaturePromptAgent) || descriptor.Supports(FeatureHistory) {
+	if !descriptor.Supports(FeatureSnapshot) || !descriptor.Supports(FeaturePromptAgent) || !descriptor.Supports(FeatureTranscript) {
 		t.Fatalf("capabilities=%+v", descriptor.Capabilities)
 	}
 	if calls := fake.callsOf("server.status"); len(calls) != 0 {

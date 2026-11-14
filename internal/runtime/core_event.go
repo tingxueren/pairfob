@@ -248,6 +248,14 @@ func decodeCoreEvent(line []byte, panes map[string]bool) (Event, bool, error) {
 			return Event{}, false, coreProtocol("events.subscribe", "invalid terminal core event")
 		}
 		return Event{Kind: EventStructure, PaneID: paneID}, true, nil
+	case "doc":
+		var data struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(note.Params.Data, &data) != nil || data.Name != "herdr-app" {
+			return Event{}, false, nil
+		}
+		return Event{Kind: EventStructure}, true, nil
 	case "missed":
 		// Events were dropped. A structure event makes the caller reconcile
 		// now instead of waiting for its next periodic snapshot.

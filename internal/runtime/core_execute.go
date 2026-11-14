@@ -20,7 +20,7 @@ func (c *Core) Execute(ctx context.Context, session SessionRef, operationID stri
 	// Reject a command this adapter cannot express before asking for a
 	// connection, so an unsupported command never depends on the core being up.
 	switch command.(type) {
-	case SendTextCommand, SendKeysCommand, RenamePaneCommand, ClosePaneCommand, CreateConversationCommand, PromptAgentCommand:
+	case SendTextCommand, SendKeysCommand, RenamePaneCommand, ClosePaneCommand, CreateConversationCommand, PromptAgentCommand, CreateTabCommand, SplitPaneCommand, RenameTabCommand, RenameWorkspaceCommand:
 	default:
 		return notApplied(operationID, coreUnsupportedCommand(command))
 	}
@@ -29,6 +29,14 @@ func (c *Core) Execute(ctx context.Context, session SessionRef, operationID stri
 		return notApplied(operationID, err)
 	}
 	switch value := command.(type) {
+	case RenameTabCommand:
+		return c.coreAppRename(ctx, conn, hello, operationID, value.TabID, value.Label, true)
+	case RenameWorkspaceCommand:
+		return c.coreAppRename(ctx, conn, hello, operationID, value.WorkspaceID, value.Label, false)
+	case CreateTabCommand:
+		return c.coreAppCreate(ctx, conn, hello, operationID, value, nil)
+	case SplitPaneCommand:
+		return c.coreAppCreate(ctx, conn, hello, operationID, CreateTabCommand{WorkspaceID: value.WorkspaceID, CWD: value.CWD, AgentKind: value.AgentKind}, &value)
 	case SendTextCommand:
 		return c.coreSendText(ctx, conn, hello, operationID, value)
 	case SendKeysCommand:

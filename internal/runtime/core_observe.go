@@ -43,7 +43,9 @@ func (c *Core) coreSnapshot(ctx context.Context) (View, error) {
 	if err != nil {
 		return nil, c.endCall(conn, "snapshot", err, false, false)
 	}
-	return SnapshotView{Snapshot: projectCoreSnapshot(hello, terminals, time.Now().Unix())}, nil
+	snapshot := c.coreAppSnapshot(ctx, conn, hello, terminals, time.Now().Unix())
+	c.applyCoreAgentBindings(ctx, hello, terminals, &snapshot)
+	return SnapshotView{Snapshot: snapshot}, nil
 }
 
 func (c *Core) coreReadPane(ctx context.Context, query PaneReadQuery) (View, error) {

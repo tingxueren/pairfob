@@ -559,7 +559,7 @@ func TestCoreCapabilityTable(t *testing.T) {
 	full := coreCapabilities(coreTestMethods())
 	for _, feature := range []Feature{
 		FeatureSnapshot, FeaturePaneRead, FeaturePaneInput, FeatureRename, FeatureClose,
-		FeatureCreateConversation, FeaturePromptAgent,
+		FeatureCreateConversation, FeaturePromptAgent, FeatureTranscript,
 	} {
 		if !full[feature].Available {
 			t.Fatalf("feature %s missing from a full core", feature)

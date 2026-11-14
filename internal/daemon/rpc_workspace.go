@@ -1,8 +1,11 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"strings"
+	"time"
 	"unicode/utf8"
 
 	"pairfob/internal/runtime"
@@ -40,6 +43,9 @@ func (e *Engine) workspaceRoot(session *string, paneID string) (string, error) {
 	if pane == nil {
 		return "", workspace.ErrNotFound
 	}
+	if strings.Contains(pane.TerminalID, "/") {
+		return "", workspace.ErrInvalidPath
+	}
 	root := pane.Cwd
 	if root == "" {
 		for _, item := range snapshot.Workspaces {
@@ -57,6 +63,8 @@ func (e *Engine) workspaceRoot(session *string, paneID string) (string, error) {
 
 func (e *Engine) replyWorkspaceErr(s *sess, id string, err error) {
 	switch {
+	case errors.Is(err, workspace.ErrChanged):
+		e.replyErr(s, id, "conflict", "workspace root changed; reopen the file")
 	case errors.Is(err, workspace.ErrInvalidPath):
 		e.replyErr(s, id, "forbidden", "workspace path is outside the live pane root")
 	case errors.Is(err, workspace.ErrNotFound), errors.Is(err, workspace.ErrNotDirectory):
@@ -75,6 +83,26 @@ func (e *Engine) dispatchWorkspaceRead(s *sess, id, op string, params json.RawMe
 	default:
 		e.replyErr(s, id, "rate_limited", "too many workspace reads are already running")
 		return
+	}
+	if reader, ok := e.RT.(runtime.WorkspaceReader); ok {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		var p workspacePaneParams
+		if json.Unmarshal(params, &p) == nil {
+			result, handled, err := reader.ReadRemoteWorkspace(ctx, runtimeSession(p.Session), op, params)
+			if handled {
+				if err != nil {
+					if f, ok := runtime.AsFault(err); ok {
+						e.replyErr(s, id, string(f.Code), f.SafeMessage)
+					} else {
+						e.replyWorkspaceErr(s, id, err)
+					}
+				} else {
+					e.reply(s, id, result)
+				}
+				return
+			}
+		}
 	}
 	inspector := workspace.NewInspector()
 	switch op {

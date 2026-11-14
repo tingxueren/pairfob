@@ -26,20 +26,25 @@ type coreStatus struct {
 }
 
 type coreForeground struct {
-	Cwd string `json:"cwd"`
+	PID  int      `json:"pid"`
+	Argv []string `json:"argv"`
+	Name string   `json:"name"`
+	Cwd  string   `json:"cwd"`
 }
 
 type coreTerminal struct {
-	Address    string            `json:"address"`
-	State      string            `json:"state"`
-	Cwd        string            `json:"cwd"`
-	Cols       uint16            `json:"cols"`
-	Rows       uint16            `json:"rows"`
-	Name       *string           `json:"name"`
-	Title      string            `json:"title"`
-	Labels     map[string]string `json:"labels"`
-	Status     *coreStatus       `json:"status"`
-	Foreground *coreForeground   `json:"foreground"`
+	PID              int               `json:"pid"`
+	ProgramStartedMS uint64            `json:"program_started_ms"`
+	Address          string            `json:"address"`
+	State            string            `json:"state"`
+	Cwd              string            `json:"cwd"`
+	Cols             uint16            `json:"cols"`
+	Rows             uint16            `json:"rows"`
+	Name             *string           `json:"name"`
+	Title            string            `json:"title"`
+	Labels           map[string]string `json:"labels"`
+	Status           *coreStatus       `json:"status"`
+	Foreground       *coreForeground   `json:"foreground"`
 }
 
 // Terminals is a pointer so a response that omits the field is rejected
@@ -319,7 +324,10 @@ var coreFeatureMethods = map[Feature][]string{
 	FeatureClose:                {"terminal.kill"},
 	FeatureCreateConversation:   {"terminal.run"},
 	FeaturePromptAgent:          {"terminal.send"},
+	FeatureCreateTab:            {"doc.get", "doc.set", "terminal.run"},
+	FeatureSplitPane:            {"doc.get", "doc.set", "terminal.run"},
 	FeatureTerminalClientScroll: {"terminal.attach"},
+	FeatureTranscript:           {"terminal.get", "terminal.list"},
 }
 
 func coreCapabilities(methods map[string]bool) map[Feature]Capability {

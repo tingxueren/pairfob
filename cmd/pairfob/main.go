@@ -21,6 +21,16 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "workspace-read-helper" {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		core := runtime.NewCore(os.Getenv("PAIRFOB_HC"))
+		defer core.Close()
+		if err := core.RunWorkspaceReadHelper(ctx, os.Stdin, os.Stdout); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "agent-hook" {
 		_ = agentHook(os.Args[2:], os.Stdin)
 		return

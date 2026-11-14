@@ -177,9 +177,9 @@ func (r *Reader) Supports(ref Ref) bool {
 		return false
 	}
 	switch {
-	case ref.Source == "herdr:codex" && ref.Agent == "codex":
+	case (ref.Source == "herdr:codex" || ref.Source == "pairfob:codex") && ref.Agent == "codex":
 		return r.CodexRoot != ""
-	case ref.Source == "herdr:claude" && ref.Agent == "claude":
+	case (ref.Source == "herdr:claude" || ref.Source == "pairfob:claude") && ref.Agent == "claude":
 		return r.ClaudeRoot != ""
 	case ref.Source == "herdr:grok" && ref.Agent == "grok":
 		return r.GrokRoot != ""

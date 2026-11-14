@@ -16,6 +16,18 @@ import (
 // Agent hooks are advisory: no output, no injected context, and no propagation
 // of a reporting failure into the agent's permissions or turn result.
 func agentHook(args []string, input io.Reader) error {
+	if terminal := os.Getenv("HC_TERMINAL_ID"); terminal != "" {
+		report, err := parseCoreAgentHook(args, input)
+		if err != nil {
+			return nil
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		core := runtime.NewCore(os.Getenv("PAIRFOB_HC"))
+		defer core.Close()
+		_ = core.ReportAgentBinding(ctx, terminal, report)
+		return nil
+	}
 	if os.Getenv("HERDR_ENV") != "1" {
 		return nil
 	}
@@ -117,7 +129,7 @@ func parseAgentHook(args []string, input io.Reader) (runtime.AgentBindingReport,
 
 func installAgentObservation(args []string) error {
 	if len(args) != 1 {
-		return errors.New("usage: pairfob agent-observation gemini|cline|amp|maki|cmd")
+		return errors.New("usage: pairfob agent-observation codex|claude|gemini|cline|amp|maki|cmd")
 	}
 	binary, err := os.Executable()
 	if err != nil {

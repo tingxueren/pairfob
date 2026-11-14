@@ -25,7 +25,7 @@ const hookMarker = "Pairfob session observation: managed file."
 // belonging to the user are preserved; an incompatible configuration is an
 // explicit error instead of silently replacing their hooks or permissions.
 func InstallAgentObservation(agent, binary string) error {
-	if !localBindingAgent(agent) {
+	if !localBindingAgent(agent) && agent != "codex" && agent != "claude" {
 		return errors.New("unsupported observation agent")
 	}
 	if goruntime.GOOS != "darwin" && goruntime.GOOS != "linux" {
@@ -45,6 +45,17 @@ func InstallAgentObservation(agent, binary string) error {
 	agentHookInstallMu.Lock()
 	defer agentHookInstallMu.Unlock()
 	switch agent {
+	case "codex", "claude":
+		root := os.Getenv("CODEX_HOME")
+		file := "hooks.json"
+		if agent == "claude" {
+			root = os.Getenv("CLAUDE_CONFIG_DIR")
+			file = "settings.json"
+		}
+		if root == "" {
+			root = filepath.Join(home, "."+agent)
+		}
+		return installCoreAgentHook(filepath.Join(root, file), binary, agent)
 	case "cmd":
 		data, _ := agentHookFiles.ReadFile("agent-hooks/command-code.js")
 		return writeManagedHook(filepath.Join(home, ".commandcode", "mods", "pairfob-session.ts"), strings.ReplaceAll(string(data), "PAIRFOB_BINARY", strconv.Quote(binary)), 0600)
