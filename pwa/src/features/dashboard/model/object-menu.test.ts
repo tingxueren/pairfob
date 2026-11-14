@@ -142,3 +142,12 @@ describe("workspace object menu model", () => {
       .toBe(t("workspace.unnamed"));
   });
 });
+
+test("workspace close is hidden when the runtime does not advertise it", () => {
+  const item = agent("p1", { workspaceId: "w1", workspaceLabel: "Project" });
+  const pane = paneMenuModel({ agent: item, agents: [item], listGroup: "flat", pinned: false, createTab: true, closeWorkspace: false });
+  const workspace = workspaceMenuModel({ agent: item, createTab: true, closeWorkspace: false });
+  expect(kinds(pane.items)).not.toContain("closeWorkspace");
+  expect(kinds(workspace!.items)).not.toContain("closeWorkspace");
+  expect(kinds(workspaceMenuModel({ agent: item, createTab: true, closeWorkspace: true })!.items)).toContain("closeWorkspace");
+});

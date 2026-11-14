@@ -323,9 +323,17 @@ func coreMachineForWorkspace(workspaceID string) (string, error) {
 	if workspaceID == "" || workspaceID == coreLocalWorkspaceID {
 		return "", nil
 	}
-	if machine := strings.TrimPrefix(workspaceID, coreMachinePrefix); machine != workspaceID {
-		if coreAddressPartPattern.MatchString(machine) {
-			return machine, nil
+	if rest := strings.TrimPrefix(workspaceID, coreMachinePrefix); rest != workspaceID {
+		parts := strings.Split(rest, ":")
+		if len(parts) == 1 && coreAddressPartPattern.MatchString(parts[0]) {
+			return parts[0], nil
+		}
+		if len(parts) == 3 && coreAddressPartPattern.MatchString(parts[0]) &&
+			((parts[1] == "space" && coreAddressPartPattern.MatchString(parts[2])) ||
+				(parts[1] == "cwd" && len(parts[2]) == 16 && strings.IndexFunc(parts[2], func(r rune) bool {
+					return !strings.ContainsRune("0123456789abcdef", r)
+				}) == -1)) {
+			return parts[0], nil
 		}
 	}
 	return "", invalidFault("create_conversation", "invalid workspace id")

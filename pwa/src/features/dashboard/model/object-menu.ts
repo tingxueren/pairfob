@@ -72,6 +72,7 @@ export function paneMenuModel(input: {
   listGroup: ListGroup;
   pinned: boolean;
   createTab: boolean;
+  closeWorkspace?: boolean;
 }): ObjectMenuModel {
   const { agent, agents, listGroup } = input;
   const split = tabIsSplit(agent, agents);
@@ -89,7 +90,7 @@ export function paneMenuModel(input: {
   if (agent.workspaceId && input.createTab) items.push({ kind: "newTabBeside", label: t("menu.newTabBeside"), scope: "workspace" });
   if (agent.workspaceId && listGroup !== "space") {
     items.push({ kind: "renameWorkspace", label: t("menu.renameWorkspace"), scope: "workspace" });
-    items.push({ kind: "closeWorkspace", label: t("op.closeWorkspace"), scope: "workspace", danger: true });
+    if (input.closeWorkspace !== false) items.push({ kind: "closeWorkspace", label: t("op.closeWorkspace"), scope: "workspace", danger: true });
   }
   return {
     // The sheet title is the card title the reader pressed.
@@ -100,7 +101,7 @@ export function paneMenuModel(input: {
 }
 
 /** The workspace heading menu; null when the group has no real workspace. */
-export function workspaceMenuModel(input: { agent: AgentCard; createTab: boolean }): ObjectMenuModel | null {
+export function workspaceMenuModel(input: { agent: AgentCard; createTab: boolean; closeWorkspace?: boolean }): ObjectMenuModel | null {
   const { agent } = input;
   if (!agent.workspaceId) return null;
   const items: ObjectMenuItem[] = [];
@@ -108,6 +109,6 @@ export function workspaceMenuModel(input: { agent: AgentCard; createTab: boolean
   // Switches to the Board tab with this workspace selected.
   items.push({ kind: "openBoard", label: t("menu.openInBoard"), scope: "workspace" });
   items.push({ kind: "renameWorkspace", label: t("menu.renameWorkspace"), scope: "workspace" });
-  items.push({ kind: "closeWorkspace", label: t("op.closeWorkspace"), scope: "workspace", danger: true });
+  if (input.closeWorkspace !== false) items.push({ kind: "closeWorkspace", label: t("op.closeWorkspace"), scope: "workspace", danger: true });
   return { title: agent.workspaceLabel || t("workspace.unnamed"), facts: [], items };
 }

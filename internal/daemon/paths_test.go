@@ -118,3 +118,25 @@ func TestValidateAllowedRootsFailsClosed(t *testing.T) {
 		t.Fatal("missing allowlist root was accepted")
 	}
 }
+
+func TestPathAllowedPreservesWhitespaceInLiveCWD(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "project ")
+	sibling := filepath.Join(root, "project")
+	for _, path := range []string{project, sibling} {
+		if err := os.Mkdir(path, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PAIRFOB_ALLOWED_ROOTS", "")
+	fake := runtime.NewFake()
+	fake.Snap.Workspaces[0].Cwd = project
+	fake.Snap.Panes[0].Cwd = project
+	engine := NewEngine(nil, nil, fake)
+	if err := engine.pathAllowed(nil, filepath.Join(project, "child"), false); err != nil {
+		t.Fatalf("live cwd with a trailing space rejected: %v", err)
+	}
+	if err := engine.pathAllowed(nil, filepath.Join(sibling, "child"), false); err == nil {
+		t.Fatal("trimming the live cwd must not authorize its sibling")
+	}
+}

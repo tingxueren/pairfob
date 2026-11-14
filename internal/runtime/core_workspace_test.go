@@ -59,9 +59,68 @@ func TestCoreProjectionInvalidAppWorkspaceFallsBack(t *testing.T) {
 
 func TestCoreWorkspaceAmbiguousDisplayLabel(t *testing.T) {
 	for _, where := range []string{"repo / API / auth", "group / repo / 1"} {
-		key, label := coreTerminalWorkspace(coreTerminal{Address: "t1", Labels: map[string]string{"herdr.space": "sp1", "where": where}})
+		key, label, _ := coreTerminalWorkspace(coreTerminal{Address: "t1", Labels: map[string]string{"herdr.space": "sp1", "where": where}})
 		if key != "core:space:sp1" || label != "sp1" {
 			t.Fatalf("ambiguous label guessed: %s %s", key, label)
 		}
+	}
+}
+
+func TestCoreProjectionGroupsUnmanagedProjectCwd(t *testing.T) {
+	items := []coreTerminal{
+		{Address: "t1", State: "live", Cwd: "/Users/me/dms-alibaba"},
+		{Address: "t2", State: "live", Cwd: "/Users/me"},
+		{Address: "mini/t1", State: "live", Cwd: "/Users/me/dms-alibaba"},
+		{Address: "mini/t2", State: "live", Cwd: "/tmp/scratch"},
+	}
+	snapshot := projectCoreSnapshot(coreHello{}, items, 1)
+	if len(snapshot.Workspaces) != 4 {
+		t.Fatalf("unexpected unmanaged groups: %+v", snapshot.Workspaces)
+	}
+	byPane := map[string]Pane{}
+	for _, pane := range snapshot.Panes {
+		byPane[pane.PaneID] = pane
+	}
+	local := byPane["t1"]
+	if local.WorkspaceID == "core" || local.Cwd != "/Users/me/dms-alibaba" {
+		t.Fatalf("local project was not promoted: %+v", local)
+	}
+	if byPane["t2"].WorkspaceID != "core" {
+		t.Fatalf("home directory must stay in the local fallback: %+v", byPane["t2"])
+	}
+	remote := byPane["mini:t1"]
+	if remote.WorkspaceID == "machine:mini" || remote.Cwd != "" || remote.Tokens["cwd"] != "/Users/me/dms-alibaba" {
+		t.Fatalf("remote project root authority changed: %+v", remote)
+	}
+	if byPane["mini:t2"].WorkspaceID != "machine:mini" {
+		t.Fatalf("temporary directory must stay in the remote fallback: %+v", byPane["mini:t2"])
+	}
+	labels := map[string]string{}
+	for _, workspace := range snapshot.Workspaces {
+		labels[workspace.WorkspaceID] = workspace.Label
+	}
+	if labels[local.WorkspaceID] != "dms-alibaba" || labels[remote.WorkspaceID] != "mini · dms-alibaba" {
+		t.Fatalf("unexpected project labels: %+v", labels)
+	}
+}
+
+func TestCoreProjectionPreservesWhitespaceInProjectCwd(t *testing.T) {
+	for _, base := range []string{"/Users/me/repo", "/home/me/repo"} {
+		t.Run(base, func(t *testing.T) {
+			items := []coreTerminal{
+				{Address: "t1", State: "live", Cwd: base + " "},
+				{Address: "t2", State: "live", Cwd: base},
+			}
+			snapshot := projectCoreSnapshot(coreHello{}, items, 1)
+			if len(snapshot.Workspaces) != 2 {
+				t.Fatalf("distinct cwd directories were merged: %+v", snapshot.Workspaces)
+			}
+			if snapshot.Workspaces[0].Cwd != base+" " || snapshot.Panes[0].Cwd != base+" " {
+				t.Fatalf("live cwd characters changed: workspaces=%+v panes=%+v", snapshot.Workspaces, snapshot.Panes)
+			}
+			if snapshot.Workspaces[0].WorkspaceID == snapshot.Workspaces[1].WorkspaceID {
+				t.Fatal("distinct cwd directories share a workspace identity")
+			}
+		})
 	}
 }

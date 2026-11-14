@@ -281,7 +281,7 @@ func (h *Herdr) agentKinds(ctx context.Context, session SessionRef) ([]AgentKind
 
 func capabilities(protocol int) map[Feature]Capability {
 	features := []Feature{
-		FeatureSnapshot, FeaturePaneRead, FeaturePaneInput, FeatureRename, FeatureClose,
+		FeatureSnapshot, FeaturePaneRead, FeaturePaneInput, FeatureRename, FeatureClose, FeatureCloseWorkspace,
 		FeatureCreateConversation, FeatureCreateTab, FeatureSplitPane, FeaturePromptAgent,
 		FeatureWorktreeList, FeatureWorktreeCreate, FeatureWorktreeOpen,
 		FeatureLayoutResize, FeatureLayoutSwap, FeatureLayoutZoom, FeatureHistory,
@@ -326,6 +326,10 @@ func (h *Herdr) Describe(ctx context.Context, session SessionRef) (Descriptor, e
 		descriptor.AgentKinds = kinds
 	}
 	descriptor.Capabilities = capabilities(snapshot.HerdrProtocol)
+	descriptor.Capabilities[FeatureCloseWorkspace] = Capability{Available: supportsSingleWorkspaceClose(snapshot.HerdrVersion)}
+	if !descriptor.Supports(FeatureCloseWorkspace) {
+		descriptor.Capabilities[FeatureCloseWorkspace] = Capability{Reason: "requires Herdr 0.9.0 or newer"}
+	}
 	descriptor.Capabilities[FeatureAgentInspect] = Capability{Available: supportsAgentInspect(snapshot.HerdrVersion)}
 	if !descriptor.Supports(FeatureAgentInspect) {
 		descriptor.Capabilities[FeatureAgentInspect] = Capability{Reason: "requires Herdr 0.8.2 or newer"}

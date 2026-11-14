@@ -1,6 +1,11 @@
 package runtime
 
-import "strings"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"path/filepath"
+	"strings"
+)
 
 // App identity labels, not cwd or display text, decide membership. Names and
 // folders can change; terminal addresses and Pairfob one-pane tab IDs stay put.
@@ -9,6 +14,7 @@ type coreWorkspaceGroup struct {
 	key       string
 	label     string
 	machine   string
+	cwd       string
 	terminals []coreTerminal
 }
 
@@ -25,12 +31,44 @@ func coreWhereWorkspaceLabel(terminal coreTerminal) string {
 	return label
 }
 
-func coreTerminalWorkspace(terminal coreTerminal) (key, label string) {
+func coreProjectCwd(terminal coreTerminal) string {
+	raw := coreResolvedCwd(terminal)
+	if strings.TrimSpace(raw) == "" || !filepath.IsAbs(raw) {
+		return ""
+	}
+	cwd := filepath.Clean(raw)
+	if cwd == "." || cwd == string(filepath.Separator) {
+		return ""
+	}
+	slash := filepath.ToSlash(cwd)
+	parts := strings.Split(strings.Trim(slash, "/"), "/")
+	// Only promote a directory below a Unix user home. A bare home, /tmp,
+	// /repo and other generic roots remain in the machine fallback group.
+	if len(parts) < 3 || (parts[0] != "Users" && parts[0] != "home") {
+		return ""
+	}
+	return cwd
+}
+
+func coreCwdWorkspaceKey(address, cwd string) string {
+	sum := sha256.Sum256([]byte(filepath.Clean(cwd)))
+	key := coreWorkspaceKey(address)
+	return key + ":cwd:" + hex.EncodeToString(sum[:8])
+}
+
+func coreTerminalWorkspace(terminal coreTerminal) (key, label, cwd string) {
 	key = coreWorkspaceKey(terminal.Address)
 	label = coreWorkspaceLabel(key)
 	space := terminal.Labels["herdr.space"]
 	if !coreAddressPartPattern.MatchString(space) {
-		return key, label
+		if cwd = coreProjectCwd(terminal); cwd != "" {
+			key = coreCwdWorkspaceKey(terminal.Address, cwd)
+			label = filepath.Base(cwd)
+			if machine := coreMachineOf(terminal.Address); machine != "" {
+				label = machine + " · " + label
+			}
+		}
+		return key, label, cwd
 	}
 	key += ":space:" + space
 	// App writes where as <space name> / <tab name>. Keep it display-only:
@@ -42,7 +80,7 @@ func coreTerminalWorkspace(terminal coreTerminal) (key, label string) {
 	if machine := coreMachineOf(terminal.Address); machine != "" {
 		label = machine + " · " + label
 	}
-	return key, label
+	return key, label, ""
 }
 
 func coreWorkspaceGroups(terminals []coreTerminal) []coreWorkspaceGroup {
@@ -52,12 +90,12 @@ func coreWorkspaceGroups(terminals []coreTerminal) []coreWorkspaceGroup {
 		if terminal.State != "live" {
 			continue
 		}
-		key, label := coreTerminalWorkspace(terminal)
+		key, label, cwd := coreTerminalWorkspace(terminal)
 		index, exists := indices[key]
 		if !exists {
 			index = len(groups)
 			indices[key] = index
-			groups = append(groups, coreWorkspaceGroup{key: key, label: label, machine: coreMachineOf(terminal.Address)})
+			groups = append(groups, coreWorkspaceGroup{key: key, label: label, machine: coreMachineOf(terminal.Address), cwd: cwd})
 		}
 		groups[index].terminals = append(groups[index].terminals, terminal)
 	}

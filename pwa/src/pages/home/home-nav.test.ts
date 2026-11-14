@@ -96,7 +96,7 @@ function boot(): void {
   applyRuntimeIdentity({ herdHost: "", runtimeKind: "herdr" });
   setNetworkOnline(true);
   setOperationBusy(false);
-  applyCapabilities({ ...NO_OPERATION_CAPABILITIES }, []);
+  applyCapabilities({ ...NO_OPERATION_CAPABILITIES, close_workspace: true }, []);
   selectPane("p1");
   seedAgents();
   attachLiveSession({
@@ -258,7 +258,7 @@ describe("session list object controls", () => {
 
   test("create_tab offers another tab on the card and the workspace heading", async () => await act(async () => {
     boot();
-    applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true }, []);
+    applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true, close_workspace: true }, []);
     commitTest();
     cardNamed("one").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
     const card = document.querySelector("dialog.sheet");

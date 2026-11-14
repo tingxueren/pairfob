@@ -270,6 +270,9 @@ func projectCoreSnapshot(hello coreHello, terminals []coreTerminal, capturedAt i
 	groups := coreWorkspaceGroups(terminals)
 	for index, group := range groups {
 		workspace := Workspace{WorkspaceID: group.key, Number: index + 1, Label: group.label}
+		if group.machine == "" {
+			workspace.Cwd = group.cwd
+		}
 		statuses := make([]string, 0, len(group.terminals))
 		for _, terminal := range group.terminals {
 			projected := corePaneProjection(terminal, group.key)
@@ -307,7 +310,7 @@ func coreLiveTerminals(terminals []coreTerminal) ([]coreTerminal, error) {
 }
 
 var coreAllFeatures = []Feature{
-	FeatureSnapshot, FeaturePaneRead, FeaturePaneInput, FeatureRename, FeatureClose,
+	FeatureSnapshot, FeaturePaneRead, FeaturePaneInput, FeatureRename, FeatureClose, FeatureCloseWorkspace,
 	FeatureCreateConversation, FeatureCreateTab, FeatureSplitPane, FeaturePromptAgent,
 	FeatureWorktreeList, FeatureWorktreeCreate, FeatureWorktreeOpen,
 	FeatureLayoutResize, FeatureLayoutSwap, FeatureLayoutZoom, FeatureHistory,

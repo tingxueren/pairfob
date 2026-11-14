@@ -55,12 +55,13 @@ export function openListPaneMenu(agent: AgentCard): void {
     listGroup: listGroup(),
     pinned: paneIsPinned(panePinned(), agent.paneId),
     createTab: offersNewTab(),
+    closeWorkspace: capabilityEnabled("close_workspace"),
   });
   openObjectMenu(model, agent, runObjectMenuAction);
 }
 
 export function openListWorkspaceMenu(agent: AgentCard): void {
-  const model = workspaceMenuModel({ agent, createTab: offersNewTab() });
+  const model = workspaceMenuModel({ agent, createTab: offersNewTab(), closeWorkspace: capabilityEnabled("close_workspace") });
   if (!model) return;
   openObjectMenu(model, agent, runObjectMenuAction);
 }

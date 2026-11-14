@@ -129,9 +129,10 @@ describe("dashboard mapping", () => {
       tabs: [{ tab_id: "t1", workspace_id: "w1", label: "fix-tab" }],
       panes: [{ pane_id: "p1", workspace_id: "w1", tab_id: "t1", agent: "codex", agent_status: "idle" }],
     });
-    expect(agentTitle(agent)).toBe("codex");
-    expect(agentMeta(agent)).toBe("pairfob · fix-tab");
+    expect(agentTitle(agent)).toBe("fix-tab");
+    expect(agentMeta(agent)).toBe("codex · pairfob");
     expect(visibleTabLabel("main")).toBe("");
+    expect(visibleTabLabel("1")).toBe("");
     expect(visibleTabLabel("fix-tab")).toBe("fix-tab");
   });
 

@@ -474,6 +474,22 @@ func TestCoreConversationParamsRemoteTarget(t *testing.T) {
 	}
 }
 
+func TestCoreMachineForProjectedWorkspace(t *testing.T) {
+	for workspace, want := range map[string]string{
+		"core": "", "machine:mini": "mini", "machine:mini:space:sp1": "mini", "machine:mini:cwd:0123456789abcdef": "mini",
+	} {
+		got, err := coreMachineForWorkspace(workspace)
+		if err != nil || got != want {
+			t.Fatalf("coreMachineForWorkspace(%q)=%q err=%v", workspace, got, err)
+		}
+	}
+	for _, workspace := range []string{"machine:mini:anything", "machine:mini:cwd:xyz", "machine:mini:space:bad/id", "machine::cwd:0123456789abcdef"} {
+		if got, err := coreMachineForWorkspace(workspace); err == nil {
+			t.Fatalf("coreMachineForWorkspace(%q)=%q, want error", workspace, got)
+		}
+	}
+}
+
 func TestCorePromptAgent(t *testing.T) {
 	fake := newFakeCoreTransport()
 	var sent map[string]any

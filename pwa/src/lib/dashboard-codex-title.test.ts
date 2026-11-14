@@ -40,6 +40,13 @@ describe("Codex terminal titles", () => {
     }
   });
 
+  test("an explicitly named App tab wins over the automatic Codex task", () => {
+    const agent = { ...card("排查钉钉文档归档原因 | RelayOne-Employee"), workspaceLabel: "RelayOne-Employee", tabLabel: "林维维护" };
+    expect(agentTitle(agent)).toBe("林维维护");
+    expect(agentTitle({ ...agent, paneLabel: "人工会话名" })).toBe("人工会话名");
+    expect(agentTitle({ ...agent, tabLabel: "1" }, "space")).toBe("排查钉钉文档归档原因 | RelayOne-Employee");
+  });
+
   test("manual names, other agents and meaningful title text retain their semantics", () => {
     const agent = card("⠋ | 清理远端分支 | pairfob");
     expect(agentTitle({ ...agent, paneLabel: "Review | pairfob" })).toBe("Review | pairfob");

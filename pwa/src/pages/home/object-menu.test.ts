@@ -73,7 +73,7 @@ beforeEach(async () => {
   // The first case pins p2 against the *selected* p1; reset the baseline pane
   // explicitly rather than relying on leftover state.
   selectPane("p1");
-  applyCapabilities({ ...NO_OPERATION_CAPABILITIES }, []);
+  applyCapabilities({ ...NO_OPERATION_CAPABILITIES, close_workspace: true }, []);
   // A computer that is reached and whose Herdr answered: the state a menu's "new tab" rows need.
   setNetworkOnline(true);
   applyRuntimeIdentity({ herdHost: "MacBook Pro", runtimeKind: "herdr" });
@@ -143,7 +143,7 @@ test("workspace grouping moves parent management to the workspace menu", async (
 });
 
 test("new-tab capability gates both card and workspace entry without offering split", async () => {
-  act(() => applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true }, []));
+  act(() => applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true, close_workspace: true }, []));
   act(() => openListPaneMenu(targetCard()));
   expect(labels()).toContain(t("menu.newTabBeside"));
   expect(labels()).not.toContain(t("menu.split"));
@@ -153,7 +153,7 @@ test("new-tab capability gates both card and workspace entry without offering sp
 });
 
 test("the new-tab rows are offered only while a session can be started: not once Herdr stops answering or exits", async () => {
-  act(() => applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true }, []));
+  act(() => applyCapabilities({ ...NO_OPERATION_CAPABILITIES, create_tab: true, close_workspace: true }, []));
   for (const runtimeKind of ["", "offline"]) {
     act(() => applyRuntimeIdentity({ herdHost: "MacBook Pro", runtimeKind }));
     act(() => openListPaneMenu(targetCard()));

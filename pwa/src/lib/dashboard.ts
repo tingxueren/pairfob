@@ -246,7 +246,7 @@ function cleanCodexTitle(raw: string, agent: AgentCard): string {
 
 export function visibleTabLabel(label: string | undefined): string {
   const text = label?.trim() ?? "";
-  if (!text || HIDDEN_TAB_LABELS.has(text.toLowerCase())) return "";
+  if (!text || /^\d+$/.test(text) || HIDDEN_TAB_LABELS.has(text.toLowerCase())) return "";
   return text;
 }
 
@@ -262,6 +262,8 @@ function taskTitle(agent: AgentCard): string {
 export function agentTitle(agent: AgentCard, group: ListGroup = "flat"): string {
   const named = cleanOscTitle(agent.paneLabel?.trim() ?? "", agent);
   if (named && !looksLikeMachineTitle(named, agent)) return named;
+  const tab = visibleTabLabel(agent.tabLabel);
+  if (agent.agent.trim() && tab && !looksLikeMachineTitle(tab, agent)) return tab;
   if (group !== "space") {
     const conversation = conversationLabel(agent);
     if (conversation) return conversation;

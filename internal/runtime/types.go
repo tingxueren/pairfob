@@ -65,6 +65,7 @@ const (
 	FeaturePaneInput            Feature = "pane_input"
 	FeatureRename               Feature = "rename"
 	FeatureClose                Feature = "close"
+	FeatureCloseWorkspace       Feature = "close_workspace"
 	FeatureCreateConversation   Feature = "create_conversation"
 	FeatureCreateTab            Feature = "create_tab"
 	FeatureSplitPane            Feature = "split_pane"

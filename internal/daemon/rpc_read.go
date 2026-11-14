@@ -41,6 +41,7 @@ func (e *Engine) rpcGetConfig(s *sess, id string, params json.RawMessage) {
 		// Raw attach viewers keep their own history and encode TUI mouse input.
 		"terminal_client_scroll": describeErr == nil && descriptor.Supports(runtime.FeatureTerminalClientScroll),
 		"create_conversation":    descriptor.Supports(runtime.FeatureCreateConversation),
+		"close_workspace":        descriptor.Supports(runtime.FeatureCloseWorkspace),
 		"create_tab":             descriptor.Supports(runtime.FeatureCreateTab),
 		"split_pane":             descriptor.Supports(runtime.FeatureSplitPane),
 		"prompt_agent":           descriptor.Supports(runtime.FeaturePromptAgent),
