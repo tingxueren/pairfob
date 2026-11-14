@@ -8,7 +8,8 @@ import (
 
 // Core's public RPC models machines and terminals. Pairfob's snapshot
 // vocabulary is workspaces, tabs and panes, so the projection below gives each
-// terminal its own one-pane tab and each machine with live terminals a
+// terminal its own one-pane tab. App-managed terminals are grouped by their
+// machine-qualified herdr.space label; other terminals retain a machine
 // workspace. Core has no splits or layout trees, and none are invented here.
 
 const (
@@ -261,41 +262,19 @@ func projectCoreSnapshot(hello coreHello, terminals []coreTerminal, capturedAt i
 		// open a terminal the user never chose.
 		Focused: map[string]string{}, Workspaces: []Workspace{}, Tabs: []Tab{}, Panes: []Pane{},
 	}
-	local, seen := false, map[string]bool{}
-	machines := make([]string, 0, 4)
-	for _, terminal := range terminals {
-		if terminal.State != "live" {
-			continue
-		}
-		key := coreWorkspaceKey(terminal.Address)
-		if key == coreLocalWorkspaceID {
-			local = true
-			continue
-		}
-		if !seen[key] {
-			seen[key] = true
-			machines = append(machines, key)
-		}
-	}
-	order := machines
-	if local {
-		order = append([]string{coreLocalWorkspaceID}, machines...)
-	}
-	for index, key := range order {
-		workspace := Workspace{WorkspaceID: key, Number: index + 1, Label: coreWorkspaceLabel(key)}
-		statuses := make([]string, 0, 4)
-		for _, terminal := range terminals {
-			if terminal.State != "live" || coreWorkspaceKey(terminal.Address) != key {
-				continue
-			}
-			projected := corePaneProjection(terminal, key)
+	groups := coreWorkspaceGroups(terminals)
+	for index, group := range groups {
+		workspace := Workspace{WorkspaceID: group.key, Number: index + 1, Label: group.label}
+		statuses := make([]string, 0, len(group.terminals))
+		for _, terminal := range group.terminals {
+			projected := corePaneProjection(terminal, group.key)
 			out.Panes = append(out.Panes, projected)
 			tabLabel := ""
 			if projected.Label != nil {
 				tabLabel = *projected.Label
 			}
-			out.Tabs = append(out.Tabs, Tab{TabID: projected.TabID, WorkspaceID: key, Label: tabLabel})
-			out.Layouts = append(out.Layouts, coreTabLayout(key, projected.TabID, projected.PaneID, int(terminal.Cols), int(terminal.Rows)))
+			out.Tabs = append(out.Tabs, Tab{TabID: projected.TabID, WorkspaceID: group.key, Label: tabLabel})
+			out.Layouts = append(out.Layouts, coreTabLayout(group.key, projected.TabID, projected.PaneID, int(terminal.Cols), int(terminal.Rows)))
 			statuses = append(statuses, projected.AgentStatus)
 		}
 		workspace.AgentStatus = coreWorkspaceAgentStatus(statuses)
