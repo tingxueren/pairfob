@@ -1,3 +1,4 @@
+import { readRuntimeConfig, terminalUsesRawStream } from "../../../lib/protocol/runtime-config-read";
 import { FullTerminalResync } from "./full-terminal-resync";
 import { webglFailure, rendererContextLost } from "./full-terminal-renderer-failure";
 import { TerminalRecoveryDiagnostics } from "./terminal-recovery-diagnostics";
@@ -58,7 +59,7 @@ import { bindTerminalCopyKey, copyTerminalSelection } from "./full-terminal-copy
 import { bindHostScroll, pageLineCount, reportsWheel, type ScrollAt } from "./full-terminal-scroll";
 import { attachFullTerminalHost, attachedFullTerminalFileOpener, clearFullTerminalAttach, connectFullTerminalEngine, fullTerminalOwnerKey } from "./full-terminal-engine";
 import { releaseFullTerminalScreen } from "./full-terminal-screen";
-import { executeTerminalCommand, TerminalCommandPump, type TerminalCommand, type TerminalInputQueueOptions } from "./full-terminal-command";
+import { createTerminalCommandPump, type TerminalCommandPump, type TerminalInputQueueOptions } from "./full-terminal-command";
 import { loadFullTerminalXterm, terminalWebglSupported } from "./full-terminal-loader";
 import { afterNextPaint, observeHostResize } from "./full-terminal-lifecycle";
 import { followCursor } from "./full-terminal-lift";
@@ -99,6 +100,7 @@ let rendererVersion = 0;
 let bridgeId = "";
 let bridgePane = "";
 let bridgeVersion = 0;
+let rawStream = false;
 let opening = false;
 let leaving: Promise<void> | null = null;
 export type FullTerminalLeaveTransition = { from: number; to: number };
@@ -179,14 +181,8 @@ function startCommandPump(
   version: number,
 ): void {
   stopCommandPump();
-  const execute = (command: TerminalCommand, sequence: number): Promise<unknown> => {
-    if (version !== bridgeVersion || bridgeId !== terminalId || liveSession() !== session || !isFullTerminal()) {
-      return Promise.reject(new ProtocolError("conflict", t("err.controllerSwitch")));
-    }
-    return executeTerminalCommand(session, terminalId, command, sequence);
-  };
-  commandPump = new TerminalCommandPump({
-    execute,
+  commandPump = createTerminalCommandPump(session, terminalId,
+    () => version === bridgeVersion && bridgeId === terminalId && liveSession() === session && isFullTerminal(), {
     observer: fullTerminalPerf.commandObserver,
     onScrollUnsupported: () => showStatus(t("ft.scrollUnsupported")),
     onError: (error) => {
@@ -277,6 +273,7 @@ function bindInput(host: HTMLElement): void {
     panXScroller: () => host.classList.contains("is-pan") ? host.querySelector<HTMLElement>(".full-terminal-pan") : null,
     wheelReported: () => reportsWheel(terminal?.modes.mouseTrackingMode),
     linePx: () => (terminal ? cssCellOf(terminal)?.height ?? 0 : 0),
+    pageLines: pageScrollLines,
   });
   unbindCopy?.();
   unbindCopy = bindTerminalCopyKey(host, () => terminal);
@@ -433,6 +430,8 @@ async function openBridge(takeover: boolean): Promise<void> {
   fullTerminalPerf.bridgeStarted();
   const recovery = new TerminalRecoveryDiagnostics(session.connectionRecovery?.());
   try {
+    const stream = terminalUsesRawStream(await readRuntimeConfig(session));
+    if (version !== bridgeVersion || !isFullTerminal() || liveSession() !== session || openPaneId() !== paneId || terminalDocumentHidden()) return;
     const size = fittedSize ?? fit();
     resizeGate.opened(size);
     const opened = await session.terminalOpen(paneId, size.cols, size.rows, takeover);
@@ -440,6 +439,7 @@ async function openBridge(takeover: boolean): Promise<void> {
       await session.terminalClose(opened.terminalId).catch(() => undefined);
       return;
     }
+    rawStream = stream;
     bridgeId = opened.terminalId;
     bridgePane = paneId;
     startCommandPump(session, opened.terminalId, version);
@@ -707,7 +707,7 @@ export function handleFullTerminalEvent(event: SessionEvent): boolean {
       remoteGrid = nextRemote;
       if (remoteChanged) requestResize(fit(), nextRemote);
       const writer = terminal;
-      if (frameGate.settle(sequence, frame.full, Boolean(writer && frameMatchesGrid(frame, writer))) === "wait") return true;
+      if (frameGate.settle(sequence, frame.full, Boolean(writer && frameMatchesGrid(frame, writer)), rawStream) === "wait") return true;
       if (frame.full) writer?.reset();
       if (writer) {
         const writeVersion = bridgeVersion;
