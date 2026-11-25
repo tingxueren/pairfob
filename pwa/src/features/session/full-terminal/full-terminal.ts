@@ -19,7 +19,6 @@ import {
 } from "../../../lib/protocol/client";
 import { appRoot } from "../../../app/dom-root";
 import { showStatus } from "../../../app/notices-store";
-import { capabilityEnabled } from "../../operations/capabilities-store";
 import { CLIENT_TERMINAL_HISTORY, scrollClientTerminal } from "./full-terminal-client-scroll";
 import { selectedAgent } from "../../dashboard/catalog-store";
 import { composeLive } from "../compose-store";
@@ -226,7 +225,7 @@ export function sendFullTerminalScroll(direction: "up" | "down", lines: number, 
   closeTerminalKeyboard();
   if (!bridgeId || opening || !commandPump) return;
   const count = clamp(Math.round(lines), 1, TERMINAL_MAX_ROWS);
-  if (terminal && capabilityEnabled("terminal_client_scroll")) {
+  if (terminal && rawStream) {
     const host = appRoot().querySelector<HTMLElement>(".full-terminal-host");
     if (host && !scrollClientTerminal(terminal, host, direction, count, source, at)) showStatus(t("ft.appScrollUnsupported"));
     return;
@@ -430,7 +429,9 @@ async function openBridge(takeover: boolean): Promise<void> {
   fullTerminalPerf.bridgeStarted();
   const recovery = new TerminalRecoveryDiagnostics(session.connectionRecovery?.());
   try {
-    const stream = terminalUsesRawStream(await readRuntimeConfig(session));
+    const config = await openTracker.prepare(readRuntimeConfig(session));
+    if (!config) return;
+    const stream = terminalUsesRawStream(config.value);
     if (version !== bridgeVersion || !isFullTerminal() || liveSession() !== session || openPaneId() !== paneId || terminalDocumentHidden()) return;
     const size = fittedSize ?? fit();
     resizeGate.opened(size);
@@ -474,6 +475,7 @@ async function suspendBridge(sendClose: boolean, reason?: LocalizedText, showFai
   const session = liveSession();
   const id = bridgeId;
   const renderer = rendererVersion;
+  openTracker.cancelPreparation();
   const pendingOpen = openTracker.pending();
   terminalRecovery = undefined;
   stopCommandPump();
