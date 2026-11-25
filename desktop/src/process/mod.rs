@@ -9,7 +9,10 @@ use std::time::{Duration, Instant};
 
 use crate::herdr::ConnectTarget;
 
+mod launch;
 pub mod sessions;
+
+pub(crate) use launch::{spawn, spawn_until};
 
 const PAIRFOB: &str = "pairfob";
 const HERDR: &str = "herdr";
@@ -156,21 +159,27 @@ pub fn run(
     timeout: Duration,
 ) -> Result<CommandOutput, ProcessError> {
     let name = program.display().to_string();
-    let mut child = Command::new(program)
+    let started = Instant::now();
+    let mut command = Command::new(program);
+    command
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|detail| ProcessError::Spawn {
-            program: name.clone(),
-            detail: detail.to_string(),
-        })?;
+        .stderr(Stdio::piped());
+    let mut child = spawn_until(&mut command, started + timeout).map_err(|detail| {
+        if detail.kind() == std::io::ErrorKind::TimedOut {
+            ProcessError::Timeout(name.clone(), timeout)
+        } else {
+            ProcessError::Spawn {
+                program: name.clone(),
+                detail: detail.to_string(),
+            }
+        }
+    })?;
 
     let stdout = child.stdout.take().map(spawn_reader);
     let stderr = child.stderr.take().map(spawn_reader);
 
-    let started = Instant::now();
     let status = loop {
         match child.try_wait() {
             Ok(Some(status)) => break status,
@@ -367,7 +376,7 @@ pub fn start_herdr(tools: &Tools, session: Option<&str>) -> Result<(), ProcessEr
         // Signals aimed at the app's process group must not reach the panes.
         command.process_group(0);
     }
-    let mut child = command.spawn().map_err(|detail| ProcessError::Spawn {
+    let mut child = spawn(&mut command).map_err(|detail| ProcessError::Spawn {
         program: herdr.display().to_string(),
         detail: detail.to_string(),
     })?;

@@ -104,3 +104,20 @@ PAIRFOB_EXPECT_BINARY_COMMIT=<目标commit至少7位> \
 链路；**不覆盖正在运行 daemon 的文档缓存、加密 relay/P2P 传输、手机 PWA
 缓存和实体设备行为**。后者需在线版本核对与手机抽查，不能仅凭这套验收
 判定“手机旧标题已修复”。纯验收工具/文档变化不要求重装四机二进制。
+
+## 自编译 Linux 二进制推广
+
+维护分支的版本取自 `herdr-plugin.toml`，以三段 SemVer 递增。先完成完整门禁和
+四节点网页验收，再用 Go 1.26.11、`CGO_ENABLED=0`、`-trimpath` 构建
+`./cmd/pairfob`；将版本及 `tingxueren/<完整源码commit>@<UTC构建时间>`
+写入 `main.version` 和 `main.commit`，同时保存 SHA-256 与构建清单。
+
+通过 rsync 将产物放入目标节点 staging，校验摘要和版本；备份当前二进制后，
+只停止 Pairfob relay daemon，原子替换同目录的 `pairfob`，再按原服务方式启动。
+不重启 Herdr Core，不更换配对身份、设备记录、relay 地址或运行时。
+推广后核对实际进程的可执行文件、版本、服务状态、已配对设备和现有 terminal PID。
+失败时恢复备份二进制并启动原服务。自编译服务继续设置 `PAIRFOB_AUTO_UPDATE=0`。
+
+Cloudflare 网页由 `fork-maintenance` 的 Workers Builds 发布；推送前必须完成
+本地发布验证，线上以 `/api/config` 的 `build` 和实际页面 CSP 核对源码版本。
+此流程不发布到上游的 `dl.pairfob.com` 下载渠道。

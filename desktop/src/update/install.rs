@@ -268,13 +268,14 @@ fn restore_note(backup: &Path, dest: &Path) -> Option<String> {
 }
 
 fn verify_version(dest: &Path, want: &str) -> Result<(), String> {
-    let mut child = Command::new(dest)
-        .arg("--version")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| format!("the new build did not run: {error}"))?;
+    let mut child = crate::process::spawn(
+        Command::new(dest)
+            .arg("--version")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped()),
+    )
+    .map_err(|error| format!("the new build did not run: {error}"))?;
     let stdout = child.stdout.take().map(read_in_background);
     let stderr = child.stderr.take().map(read_in_background);
     let deadline = Instant::now() + VERIFY_TIMEOUT;
@@ -323,14 +324,15 @@ fn join_output(output: Option<thread::JoinHandle<Vec<u8>>>) -> Vec<u8> {
 }
 
 pub fn relaunch(dest: &Path) -> Result<(), String> {
-    Command::new(dest)
-        .args(std::env::args_os().skip(1))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| format!("could not start the updated build: {error}"))
+    crate::process::spawn(
+        Command::new(dest)
+            .args(std::env::args_os().skip(1))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null()),
+    )
+    .map(|_| ())
+    .map_err(|error| format!("could not start the updated build: {error}"))
 }
 
 fn temporary_path(dest: &Path) -> PathBuf {

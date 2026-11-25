@@ -249,14 +249,15 @@ pub struct OfferSession {
 
 impl OfferSession {
     pub fn start(pairfob: &Path) -> Result<Self, PairingError> {
-        let mut child = Command::new(pairfob)
-            .arg("pair")
-            .arg("offer")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|err| PairingError::Spawn(err.to_string()))?;
+        let mut child = crate::process::spawn(
+            Command::new(pairfob)
+                .arg("pair")
+                .arg("offer")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped()),
+        )
+        .map_err(|err| PairingError::Spawn(err.to_string()))?;
 
         let stdin = child.stdin.take().ok_or_else(|| {
             let _ = child.kill();

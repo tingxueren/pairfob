@@ -7,6 +7,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+# Local HTTP fixtures must not be routed through an inherited network proxy.
+# Merge both spellings so existing bypasses remain effective for every client.
+export no_proxy="localhost,127.0.0.1,::1${no_proxy:+,$no_proxy}${NO_PROXY:+,$NO_PROXY}"
+export NO_PROXY="$no_proxy"
 PART=all
 SHARD_INDEX=0
 SHARD_TOTAL=1
