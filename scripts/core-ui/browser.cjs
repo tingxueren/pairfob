@@ -130,7 +130,9 @@ async function choose(page, title, touch) {
             checkDOM(await dom(page),expected);
           }
           const collator = new Intl.Collator('zh-CN',{numeric:true,sensitivity:'base'});
+          // Fixed-name order keeps machines together, then sorts their projects.
           const sorted = [...before].sort((a,b) => Number(!!a.remote)-Number(!!b.remote)
+            || collator.compare(a.remote,b.remote)
             || collator.compare(a.name,b.name) || a.id.localeCompare(b.id));
           assert.deepEqual(before.map(g => g.id), sorted.map(g => g.id), 'project name order');
           // A recent-open stamp must not disturb fixed name order.
