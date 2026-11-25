@@ -130,10 +130,12 @@ async function choose(page, title, touch) {
             checkDOM(await dom(page),expected);
           }
           const collator = new Intl.Collator('zh-CN',{numeric:true,sensitivity:'base'});
-          // Fixed-name order keeps machines together, then sorts their projects.
-          const sorted = [...before].sort((a,b) => Number(!!a.remote)-Number(!!b.remote)
-            || collator.compare(a.remote,b.remote)
-            || collator.compare(a.name,b.name) || a.id.localeCompare(b.id));
+          const compareNames = (a,b) => collator.compare(a,b) || (a < b ? -1 : a > b ? 1 : 0);
+          // Keep the unbound bucket last; machine, project and identity use the
+          // production list policy's deterministic tie-break for equal collation.
+          const sorted = [...before].sort((a,b) => Number(a.id==='unbound')-Number(b.id==='unbound')
+            || Number(!!a.remote)-Number(!!b.remote) || compareNames(a.remote,b.remote)
+            || compareNames(a.name,b.name) || compareNames(a.id,b.id));
           assert.deepEqual(before.map(g => g.id), sorted.map(g => g.id), 'project name order');
           // A recent-open stamp must not disturb fixed name order.
           const last = before.at(-1).rows[0].id;
